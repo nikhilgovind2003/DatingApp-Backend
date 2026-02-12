@@ -1,4 +1,6 @@
 import {app} from "./app.js";
+import "./socket/socket.js";
+
 import dotenv from 'dotenv';
 import databaseConnection from "./config/db.config.js";
 
