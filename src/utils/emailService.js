@@ -4,73 +4,74 @@ export const sendResetPasswordEmail = async ({ userEmail, token, userId }) => {
     const transporter = nodemailer.createTransport({
         service: 'Gmail',
         auth: {
-            user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASS,
+            user: process.env.SMTP_USER,
+            pass: process.env.SMTP_PASS,
         },
     });
 
     const mailOptions = {
-        from: process.env.EMAIL_USER,
+        from: `"Buddy Pair Support" <${process.env.SMTP_USER}>`,
         to: userEmail,
-        subject: 'Password Reset',
-        html: `<!DOCTYPE html>
+        subject: 'Reset Your Password - Buddy Pair',
+        html: `
+        <!DOCTYPE html>
         <html>
         <head>
-          <title>Forgot Password</title>
-          <style>
-            body {
-              font-family: Arial, sans-serif;
-              margin: 0;
-              padding: 0;
-              width: 100vw;
-              height: 100vh;
-              display: flex;
-              justify-content: center;
-            }
-        
-            .container {
-              width: 90%;
-              padding: 30px;
-              border-radius: 5px;
-            }
-        
-            h1 {
-              text-align: center;
-              margin-top: 0;
-            }
-        
-            p {
-              line-height: 1.5;
-            }
-        
-            .button {
-              display: block;
-              background-color: #da4444;
-              color: #fff;
-              text-decoration: none;
-              padding: 10px 20px;
-              border-radius: 5px;
-              text-align: center;
-              margin: 20px 0;
-            }
-        
-            .button:hover {
-              background-color: #da5555;
-            }
-          </style>
+            <style>
+                .container {
+                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                    max-width: 600px;
+                    margin: 0 auto;
+                    padding: 20px;
+                    background-color: #f9f9f9;
+                    border-radius: 12px;
+                }
+                .header {
+                    text-align: center;
+                    padding-bottom: 20px;
+                }
+                .content {
+                    background-color: #ffffff;
+                    padding: 40px;
+                    border-radius: 8px;
+                    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+                    text-align: center;
+                }
+                .button {
+                    display: inline-block;
+                    background-color: #4f46e5;
+                    color: #ffffff;
+                    text-decoration: none;
+                    padding: 14px 28px;
+                    border-radius: 8px;
+                    font-weight: bold;
+                    margin: 25px 0;
+                    box-shadow: 0 4px 6px rgba(79, 70, 229, 0.3);
+                }
+                .footer {
+                    text-align: center;
+                    margin-top: 20px;
+                    color: #6b7280;
+                    font-size: 14px;
+                }
+            </style>
         </head>
         <body>
-          <div class="container">
-            <p>Hi there,</p>
-            <p>We've received a request to reset your password for your account at our website.</p>
-            <p>If you did not make this request, you can safely ignore this email.</p>
-            <p>To reset your password, please click the link below:</p>
-            <a href="${process.env.FRONTEND_URL}/reset-password?user=${userId}&token=${token}" class="button">Reset Password</a>
-            <p>This link will expire in 5 minutes.</p>
-            <p>If you have any questions, please don't hesitate to contact us at <a href="mailto:support@example.com">support@example.com</a>.</p>
-            <p>Best regards,<br>
-            The Example Team</p>
-          </div>
+            <div class="container">
+                <div class="header">
+                    <h1>Buddy Pair</h1>
+                </div>
+                <div class="content">
+                    <h2>Password Reset Request</h2>
+                    <p>We received a request to reset your password. If you didn't make this request, you can safely ignore this email.</p>
+                    <p>To set a new password, click the button below:</p>
+                    <a href="${process.env.FRONTEND_URL}/reset-password?user=${userId}&token=${token}" class="button" style="color: white;">Reset Password</a>
+                    <p>This link will expire in 5 minutes for your security.</p>
+                </div>
+                <div class="footer">
+                    &copy; 2026 Buddy Pair. All rights reserved.
+                </div>
+            </div>
         </body>
         </html>`
     };

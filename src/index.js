@@ -1,9 +1,9 @@
-import {app} from "./app.js";
-import "./socket/socket.js";
+import { app } from "./app.js";
+import { initSocket } from "./socket/socket.js";
+import http from "http";
 
 import dotenv from 'dotenv';
 import databaseConnection from "./config/db.config.js";
-
 
 dotenv.config({
     path: './.env'
@@ -12,8 +12,12 @@ dotenv.config({
 databaseConnection();
 
 const port = process.env.PORT || 4000;
+const server = http.createServer(app);
 
-app.listen(port, () => {
+// Initialize Socket.io
+initSocket(server);
+
+server.listen(port, () => {
     console.log(`server is up on port ${port}`)
 })
 

@@ -14,9 +14,9 @@ import dotenv from 'dotenv'
 import {getStories, oneStory} from "./controllers/stories/stories.controller.js";
 dotenv.config()
 
-const app = new express();
+const app = express();
 
-const socket = Client('http://localhost:8800');
+const socket = Client('http://localhost:5000');
 
 app.use(
   cors({
