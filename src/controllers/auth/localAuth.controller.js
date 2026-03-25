@@ -9,9 +9,9 @@ import ProfileModel from '../../models/profile.model.js';
 
 
 const cookieOptions = {
-    httpOnly: false, 
+    httpOnly: false,
     secure: false,      // Set to true in production with HTTPS
-    sameSite: "lax",  
+    sameSite: "lax",
     maxAge: 24 * 60 * 60 * 1000
 };
 
@@ -69,9 +69,13 @@ export const registerUser = async (req, res) => {
 
         // Check if the OTP is correct
         if (!otpStore[email] || otpStore[email] !== otp) {
+
+
             return res.status(400).json({
                 success: false,
-                message: 'Invalid or expired OTP'
+                message: 'Invalid or expired OTP',
+                otpStore: otpStore[email],
+                currentOtp: otp
             });
         }
 
@@ -91,7 +95,7 @@ export const registerUser = async (req, res) => {
             lastName,
             email,
             password: await bcrypt.hash(password, 10),
-            isVerified: true, 
+            isVerified: true,
             isActive: true // Mark user as verified since OTP was correct
         });
 
@@ -145,13 +149,13 @@ export const loginUser = async (req, res) => {
         userWithoutPassword.isActive = true;
         await userWithoutPassword.save();
 
-        const myProfile = await ProfileModel.findOne({user: user._id})
+        const myProfile = await ProfileModel.findOne({ user: user._id })
         console.log(myProfile);
-        
+
 
         res.status(200)
             .cookie("token", token, cookieOptions)
-            .cookie("user", {...userWithoutPassword, "isAuthenticated" : true}, cookieOptions)
+            .cookie("user", { ...userWithoutPassword, "isAuthenticated": true }, cookieOptions)
             .cookie("myProfile", myProfile, cookieOptions)
             .json({
                 success: true,
@@ -262,10 +266,10 @@ export const logout = async (req, res) => {
             expires: new Date(Date.now()), // Expire the cookie immediately
         }).cookie("connect.sid", "", {
             httpOnly: true,
-            expires: new Date(0), 
+            expires: new Date(0),
         }).cookie("user", "", {
             httpOnly: true,
-            expires: new Date(0), 
+            expires: new Date(0),
         })
         return res.status(200).json({
             success: true,
@@ -282,7 +286,7 @@ export const logout = async (req, res) => {
 export const changePassword = async (req, res) => {
     try {
         const { newPassword, password } = await req.body;
-        if(!newPassword || !password) {
+        if (!newPassword || !password) {
             return res.status(400).json({
                 success: false,
                 message: "All fields are required"
@@ -295,13 +299,13 @@ export const changePassword = async (req, res) => {
                 message: "User not found"
             })
         }
-    
+
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
-            return res.status(401).json({ 
+            return res.status(401).json({
                 success: false,
                 message: "Incorrect password"
-             });
+            });
         }
         const hashedPassword = await bcrypt.hash(newPassword, 10);
         user.password = hashedPassword;

@@ -85,6 +85,12 @@ export const updateProfile = async (req, res) => {
 
     // Handle additional images
     if (req.files["additionalImg"]) {
+      if (req.files["additionalImg"].length > 3) {
+        return res
+          .status(400)
+          .json({ error: "You can upload up to 3 additional images only." });
+      }
+
       const newImages = req.files["additionalImg"].map((file) =>
         uploadToCloudinary(file.path, "profiles")
       );

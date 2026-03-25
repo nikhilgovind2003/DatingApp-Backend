@@ -13,6 +13,12 @@ export const createProfile = async (req, res) => {
                 message: "Please upload all required fields"
             })
         }
+        if (additionalImages.length > 3) {
+            return res.status(400).json({
+                success: false,
+                message: "You can upload up to 3 additional images only."
+            });
+        }
         const profileResponse = await uploadOnCloudinary(profile?.path, profile?.filename, 'image');
         const reelResponse = await uploadOnCloudinary(reel?.path, reel?.filename, 'video');
         
