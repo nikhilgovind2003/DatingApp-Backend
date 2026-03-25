@@ -4,10 +4,16 @@ export const setInterest = async (req, res) => {
     try {
         const { interest } = req.body;
 
+        const allowedInterests = ["MEN", "WOMEN", "BOTH"];
+        if (!interest || !allowedInterests.includes(interest)) {
+            return res.status(400).json({
+                success: false,
+                message: "Please select a valid interest: MEN, WOMEN, or BOTH."
+            });
+        }
 
-        const profile = await ProfileModel.findOne({user: req.user._id});
+        const profile = await ProfileModel.findOne({ user: req.user._id });
 
-        // Handle case where profile is not found
         if (!profile) {
             return res.status(404).json({
                 success: false,
@@ -18,15 +24,16 @@ export const setInterest = async (req, res) => {
         profile.genderPreference = interest;
         await profile.save();
 
-        res.status(201).json({
+        return res.status(200).json({
             success: true,
-            message: 'Interest saved successfully',
+            message: 'Gender preference updated successfully',
             data: profile
         });
     } catch (error) {
-        res.status(400).json({
+        console.error("Set Interest Error:", error);
+        return res.status(500).json({
             success: false,
-            message: error.message
+            message: "Failed to update interest: " + error.message
         });
     }
 };

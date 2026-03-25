@@ -7,6 +7,7 @@ const profileSchema = new Schema(
       type: Schema.Types.ObjectId,
       ref: "User",
       required: true,
+      unique: true,
     },
     bio: {
       type: String,
@@ -14,7 +15,7 @@ const profileSchema = new Schema(
     location: {
       type: String
     },
-  
+
     age: {
       type: Number,
     },
@@ -33,11 +34,11 @@ const profileSchema = new Schema(
     },
     drinking: {
       type: String,
-      enum:['Never','Occasionally','Regularly','Quitting']
+      enum: ['Never', 'Occasionally', 'Regularly', 'Quit']
     },
     smoking: {
       type: String,
-      enum:['Never','Occasionally','Regularly','Quitting']
+      enum: ['Never', 'Occasionally', 'Regularly', 'Quit']
     },
     genderPreference: {
       type: String,

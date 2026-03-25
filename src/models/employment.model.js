@@ -4,7 +4,8 @@ const employementSchema=new Schema({
     user: {
       type: Schema.Types.ObjectId,
       ref: 'User',
-      required: true
+      required: true,
+      unique: true,
     },
     companyName:{
         type:String

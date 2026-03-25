@@ -8,17 +8,20 @@ export const jobDetails = async (req, res) => {
 
     console.log(userId);
     
-    const employment = await EmploymentModel.create({
-      companyName,
-      designation,
-      location,
-      user: userId, // Use the authenticated user's ID
-    });
+    const employment = await EmploymentModel.findOneAndUpdate(
+      { user: userId },
+      {
+        companyName,
+        designation,
+        location,
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
 
-    return res.status(201).json({
+    return res.status(200).json({
       success: true,
       message: "Job details saved successfully",
-      data: employment,
+      employment,
     });
   } catch (error) {
     console.error("Job details error:", error);

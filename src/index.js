@@ -1,13 +1,8 @@
+import "dotenv/config.js";
 import { app } from "./app.js";
 import { initSocket } from "./socket/socket.js";
 import http from "http";
-
-import dotenv from 'dotenv';
 import databaseConnection from "./config/db.config.js";
-
-dotenv.config({
-    path: './.env'
-});
 
 databaseConnection();
 
