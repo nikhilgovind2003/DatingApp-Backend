@@ -20,7 +20,7 @@ const socket = Client('http://localhost:5000');
 
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: ["http://localhost:5173", "https://buddy-pair-dating-app.vercel.app"],
     methods: ["GET", "POST","PUT","DELETE","PATCH"],
     credentials: true,
   })
