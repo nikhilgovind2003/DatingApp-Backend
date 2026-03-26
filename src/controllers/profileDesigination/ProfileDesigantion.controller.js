@@ -17,7 +17,6 @@ export const getProfileByDesigination = async (req, res) => {
             })
         }
         const userDesignation = employes.designation.trim(); // Remove extra spaces
-        console.log(userDesignation);
 
         // Find matching employments with the same designation (case-insensitive and trimmed)
         const matchingEmployments = await EmploymentModel.find({

@@ -42,7 +42,7 @@ export const getProfile = async (req, res) => {
     ]);
     res.status(200).send(user[0]);
   } catch (error) {
-    console.log.error("failed to fetch user,", error);
+    console.error("failed to fetch user,", error);
     res.status(500).send({ error: "failed" });
   }
 };
