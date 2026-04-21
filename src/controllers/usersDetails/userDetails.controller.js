@@ -4,13 +4,16 @@ import ProfileModel from "../../models/profile.model.js";
 //user details fetch dispaly cards
 export const users = async (req, res) => {
   try {
-    const users = await UserModel.find({});
-    const profiles = await ProfileModel.find({});
+    // Fetch profiles and populate user data, excluding the current logged-in user
+    const profiles = await ProfileModel.find({
+      user: { $ne: req.user._id }
+    }).populate('user');
+
     // Combine profiles with their respective users
     const combinedData = profiles.map((profile) => {
-      const user = users.find(
-        (user) => user._id.toString() === profile.user.toString()
-      );
+      const user = profile.user;
+      
+      // Handle cases where the user might not be found (e.g., deleted user)
       if (!user) {
         return {
           ...profile._doc,
@@ -24,6 +27,7 @@ export const users = async (req, res) => {
           },
         };
       }
+      
       return {
         ...profile._doc,
         user: {
@@ -37,11 +41,10 @@ export const users = async (req, res) => {
       };
     });
 
-
     res.status(200).json(combinedData);
   } catch (error) {
     console.error("Error fetching users and profiles:", error);
-    res.status(500).json({ error: "Failed to fetch users" });
+    res.status(500).json({ error: error.message });
   }
 };
 
@@ -64,11 +67,10 @@ export const getAllProfilesExceptLoggedInUser = async (req, res) => {
     // Fetch the current user's profile to get genderPreference
     const currentUserProfile = await ProfileModel.findOne({ user: req.user.id });
 
-    // if (!currentUserProfile || !currentUserProfile.genderPreference) {
-    //   return res.status(404).json({
-    //     message: "User profile or gender preference not found"
-    //   });
-    // }
+    if (!currentUserProfile || !currentUserProfile.genderPreference) {
+      console.log("User profile or gender preference not found for user:", req.user.id);
+      return res.status(200).json([]); // Return empty list instead of crashing
+    }
 
     // Set preferred gender based on the user's preference
     const userGenderPreference = currentUserProfile.genderPreference.trim();
@@ -79,6 +81,9 @@ export const getAllProfilesExceptLoggedInUser = async (req, res) => {
     } else if (userGenderPreference === 'WOMEN') {
       preferredGender = ['Female'];
     } else if (userGenderPreference === 'BOTH') {
+      preferredGender = ['Male', 'Female'];
+    } else {
+      // Fallback if preference is set but doesn't match expected values
       preferredGender = ['Male', 'Female'];
     }
 

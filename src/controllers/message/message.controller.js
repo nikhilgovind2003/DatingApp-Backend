@@ -1,5 +1,7 @@
 import MessageModel from "../../models/message.model.js";
 import ConversationModel from "../../models/conversation.model.js";
+import { emitToUser } from "../../socket/socket.js";
+import { createNotification } from "../notification/notificationController.js";
 
 export const sendMessage = async (req, res) => {
   try {
@@ -16,25 +18,35 @@ export const sendMessage = async (req, res) => {
       });
     }
 
-    const newMessages = new MessageModel({
+    const newMessage = new MessageModel({
       senderId,
       receiverId,
       message,
       conversationId: chats._id,
     });
 
-    if (newMessages) {
-      chats.message.push(newMessages._id);
+    if (newMessage) {
+      chats.message.push(newMessage._id);
     }
 
-    // SOCKET.IO Here
-
     // This will run in parallel
-    await Promise.all([chats.save(), newMessages.save()]);
-    res.status(201).json({ newMessages });
+    await Promise.all([chats.save(), newMessage.save()]);
+
+    // SOCKET.IO: Emit message to receiver
+    emitToUser(receiverId, "receiveMessage", {
+      senderId,
+      message,
+      conversationId: chats._id,
+      createdAt: newMessage.createdAt
+    });
+
+    // Create a notification for the new message
+    await createNotification("message", senderId, receiverId);
+
+    res.status(201).json({ newMessage });
   } catch (error) {
-    console.log(error.message);
-    res.send("Internal server error!!!");
+    console.error("Error in sendMessage:", error.message);
+    res.status(500).json({ error: "Internal server error" });
   }
 };
 

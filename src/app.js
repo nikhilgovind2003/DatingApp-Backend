@@ -16,11 +16,11 @@ dotenv.config()
 
 const app = express();
 
-const socket = Client('http://localhost:5000');
+const socket = Client(process.env.BACKEND_URL);
 
 app.use(
   cors({
-    origin: ["http://localhost:5173", "https://buddy-pair-dating-app.vercel.app"],
+    origin: process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(",") : ["http://localhost:5173", "https://buddy-pair-dating-app.vercel.app"],
     methods: ["GET", "POST","PUT","DELETE","PATCH"],
     credentials: true,
   })
@@ -45,7 +45,7 @@ app.use(passport.initialize());
 app.use(passport.session());
 // passport.use(new LocalStrategy(authUser))
 
-// routes
+// routes/
 app.use("/", authRoutes)
 app.use("/api/v1/users", userRoute);
 

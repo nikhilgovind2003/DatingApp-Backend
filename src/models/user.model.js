@@ -25,6 +25,7 @@ const userSchema = new Schema(
         contact: {
             type: Number,
             unique: true,
+            sparse: true,
             minlength: 10,
         },
         password: {

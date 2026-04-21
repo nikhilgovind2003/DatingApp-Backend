@@ -53,16 +53,8 @@ export const shortlistProfile = async (req, res) => {
     await user.save();
     await profileToBeShortlisted.save();
     
-        //create notification
-        createNotification("shortlist", userId, profileId)
-
-     // Emit notification to the receiver through standalone Socket.IO server
-     socket.emit('newNotification', {
-      type: 'shortlist',
-      sender: userId,
-      receiver: profileId,
-     
-    });
+    // create notification (which now also emits a socket event)
+    await createNotification("shortlist", userId, profileId);
 
     res.status(200).json({
       success: true,

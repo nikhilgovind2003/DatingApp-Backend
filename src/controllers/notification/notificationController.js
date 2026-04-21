@@ -1,4 +1,5 @@
 import Notification from '../../models/notification.model.js'
+import { emitToUser } from '../../socket/socket.js';
 
 export const createNotification = async (type, sender, receiver) => {
   try {
@@ -8,6 +9,12 @@ export const createNotification = async (type, sender, receiver) => {
       receiver
     });
     await notification.save();
+
+    // Emit real-time notification via socket
+    const populatedNotification = await notification.populate('sender', 'firstName lastName');
+    emitToUser(receiver, 'newNotification', populatedNotification);
+    
+    return notification;
   } catch (err) {
     console.error('Error creating notification:', err);
   }

@@ -12,9 +12,13 @@ const userData = {
   ...user,
   'isAuthenticated': true
 }
-  if (!user) {
-    return res.redirect("http://localhost:5173/login");
-  }
+
+console.log("user", user);
+console.log("token", token);
+
+  // if (!user) {
+  //   return res.redirect("http://localhost:5173/login");
+  // }
 
   if (user.googleSignup) {
     res.cookie('token', token, {

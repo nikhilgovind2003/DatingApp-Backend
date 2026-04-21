@@ -1,63 +1,111 @@
 import { Server } from "socket.io";
+import UserModel from "../models/user.model.js";
 
-let activeUsers = [];
-const users = {};
+let io;
+const userSocketMap = new Map(); // userId -> socketId
 
+/**
+ * Initialize Socket.io server
+ */
 export const initSocket = (server) => {
-  const io = new Server(server, {
+  io = new Server(server, {
     cors: {
-      origin: ["http://localhost:5173", "http://localhost:5000"],
+      origin: process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(",") : ["http://localhost:5173", "http://localhost:5000"],
       methods: ["GET", "POST"],
     },
   });
 
   io.on("connection", (socket) => {
-    // Join the socket room specific to the user
-    socket.on('joinRoom', (userId) => {
-      if (userId) {
-        // Store the mapping of userId to the current socket.id
-        users[userId] = socket.id;
-        socket.join(userId); // User joins a room based on their userId
+    console.log(`User connected: ${socket.id}`);
+
+    // Join room and map userId to socketId
+    socket.on('joinRoom', async (userId) => {
+      if (!userId) return;
+
+      userSocketMap.set(userId, socket.id);
+      socket.join(userId);
+      console.log(`User ${userId} joined room. Socket: ${socket.id}`);
+
+      // Update user status in DB
+      try {
+        await UserModel.findByIdAndUpdate(userId, { isActive: true });
+        // Broadcast that this user is now online
+        io.emit("userStatusChange", { userId, isActive: true });
+      } catch (error) {
+        console.error("Error updating user status on joinRoom:", error);
       }
     });
 
-    // add new User
-    socket.on("new-user-add", (newUserId) => {
-      // if user is not added previously
-      if (!activeUsers.some((user) => user.userId === newUserId)) {
-        activeUsers.push({ userId: newUserId, socketId: socket.id });
+    // Handle explicit status check
+    socket.on("checkStatus", (userId) => {
+      const isActive = userSocketMap.has(userId);
+      socket.emit("statusResponse", { userId, isActive });
+    });
+
+    socket.on("disconnect", async () => {
+      let disconnectedUserId = null;
+      for (const [userId, socketId] of userSocketMap.entries()) {
+        if (socketId === socket.id) {
+          disconnectedUserId = userId;
+          break;
+        }
       }
-      // send all active users to new user
-      io.emit("get-users", activeUsers);
+
+      if (disconnectedUserId) {
+        userSocketMap.delete(disconnectedUserId);
+        console.log(`User ${disconnectedUserId} disconnected`);
+
+        try {
+          await UserModel.findByIdAndUpdate(disconnectedUserId, { isActive: false });
+          // Broadcast that this user is now offline
+          io.emit("userStatusChange", { userId: disconnectedUserId, isActive: false });
+        } catch (error) {
+          console.error("Error updating user status on disconnect:", error);
+        }
+      }
     });
 
-    socket.on("disconnect", () => {
-      // remove user from active users
-      activeUsers = activeUsers.filter((user) => user.socketId !== socket.id);
-      // send all active users to all users
-      io.emit("get-users", activeUsers);
-    });
-
-    //send notification
+    // Simple ping/pong or explicit notification emit (though controllers will mostly use getIO)
     socket.on('sendNotification', ({ from, to, type }) => {
-      if (users[to]) {
-        io.to(users[to]).emit('newNotification', {
+      const receiverSocketId = userSocketMap.get(to);
+      if (receiverSocketId) {
+        io.to(receiverSocketId).emit('newNotification', {
           type,
           sender: from,
           receiver: to,
         });
       }
     });
-
-    // send message to a specific user
-    socket.on("send-message", (data) => {
-      const { receiverId } = data;
-      const user = activeUsers.find((user) => user.userId === receiverId);
-      if (user) {
-        io.to(user.socketId).emit("recieve-message", data);
-      }
-    });
   });
 
   return io;
+};
+
+/**
+ * Get global IO instance
+ */
+export const getIO = () => {
+  if (!io) {
+    throw new Error("Socket.io not initialized!");
+  }
+  return io;
+};
+
+/**
+ * Get socketId for a specific userId
+ */
+export const getSocketId = (userId) => {
+  return userSocketMap.get(String(userId));
+};
+
+/**
+ * Send event to a specific user
+ */
+export const emitToUser = (userId, event, data) => {
+  const socketId = getSocketId(userId);
+  if (socketId) {
+    io.to(socketId).emit(event, data);
+    return true;
+  }
+  return false;
 };

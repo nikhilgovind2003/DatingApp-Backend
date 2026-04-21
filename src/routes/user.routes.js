@@ -22,6 +22,7 @@ import { getMessages, sendMessage } from "../controllers/message/message.control
 import { matchBySpin } from "../controllers/spinner/spin.controller.js";
 
 import { getProfile, updateProfile } from "../controllers/Editprofile/Editprofile.js"
+import { editProfileValidator } from "../utils/profileValidation.js"
 import {getSortedAndFilteredUsers} from '../controllers/sortFilter/sortFilter.cotrller.js'
 import { getNotifications } from '../controllers/notification/notificationController.js'
 
@@ -70,7 +71,7 @@ router.get('/matchbylocation',verifyUser, matchByLocation)
 router.get('/matchbyspin',verifyUser,matchBySpin)
 
 //get data users
-router.get("/users", users);
+router.get("/users", verifyUser, users);
 router.get("/user",verifyUser, getUserdetails);
 router.get("/userdetails",verifyUser, getAllProfilesExceptLoggedInUser);
 
@@ -102,7 +103,7 @@ router.get('/profiles', verifyUser, getProfiles);
 router.post('/sortfilter/:id',getSortedAndFilteredUsers)
 
 router.post("/messages/send/:id",verifyUser, sendMessage)
-router.get("/messages/send",verifyUser, getMessages)
+router.get("/messages/:id",verifyUser, getMessages)
 router.get("/get-profile",verifyUser, getProfile)
 // router.post("/update-profile",verifyUser, updateProfile)
 
@@ -110,7 +111,7 @@ router.post('/update-profile',verifyUser, upload.fields([
     { name: 'profileImage', maxCount: 1 },
     { name: 'additionalImg', maxCount: 3 },
     { name: 'reel', maxCount: 1 },
-  ]), updateProfile);
+  ]), editProfileValidator, updateProfile);
   
   // get notifications
 router.get('/notifications',verifyUser, getNotifications)

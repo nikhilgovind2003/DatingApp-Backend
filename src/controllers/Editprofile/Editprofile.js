@@ -3,6 +3,7 @@ import ProfileModel from "../../models/profile.model.js";
 
 import deleteFromCloudinary from "../../utils/removeFromCloudinary.js";
 import uploadToCloudinary from "../../utils/uploadOnCloudinary.js";
+import { validationResult } from "express-validator";
 
 export const getProfile = async (req, res) => {
   try {
@@ -36,6 +37,14 @@ export const getProfile = async (req, res) => {
             reel: 1,
             profileImage: 1,
             additionalImage: 1,
+            age: 1,
+            gender: 1,
+            location: 1,
+            hobbies: 1,
+            interests: 1,
+            drinking: 1,
+            smoking: 1,
+            qualification: 1,
           },
         },
       },
@@ -49,8 +58,13 @@ export const getProfile = async (req, res) => {
 
 export const updateProfile = async (req, res) => {
   try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ error: errors.array()[0].msg, details: errors.array() });
+    }
+
     const userId = req.user._id;
-    const { firstName, lastName, bio, age, contact } = req.body;
+    const { firstName, lastName, bio, age, contact, gender, location, hobbies, interests, drinking, smoking, qualification } = req.body;
 
     const profile = await ProfileModel.findOne({ user: userId });
     if (!profile) {
@@ -66,6 +80,13 @@ export const updateProfile = async (req, res) => {
 
     if (bio) profileUpdate.bio = bio;
     if (age) profileUpdate.age = age;
+    if (gender) profileUpdate.gender = gender;
+    if (location) profileUpdate.location = location;
+    if (hobbies) profileUpdate.hobbies = hobbies;
+    if (interests) profileUpdate.interests = typeof interests === 'string' ? interests.split(',').map(s => s.trim()) : interests;
+    if (drinking) profileUpdate.drinking = drinking;
+    if (smoking) profileUpdate.smoking = smoking;
+    if (qualification) profileUpdate.qualification = qualification;
 
     // Handle profile image
     if (req.files["profileImage"]) {
@@ -134,6 +155,6 @@ export const updateProfile = async (req, res) => {
     res.status(200).json({ message: "Profile updated successfully" });
   } catch (error) {
     console.error("Failed to update profile:", error);
-    res.status(500).json({ error: "Failed to update profile" });
+    res.status(500).json({ error: error.message });
   }
 };
