@@ -160,7 +160,6 @@ export const loginUser = async (req, res) => {
         await userWithoutPassword.save();
 
         const myProfile = await ProfileModel.findOne({ user: user._id })
-        console.log(myProfile);
 
 
         res.status(200)
@@ -170,7 +169,11 @@ export const loginUser = async (req, res) => {
             .json({
                 success: true,
                 message: 'Login Successfully!',
+                user: userWithoutPassword,
+                token: token,
+                myProfile: myProfile
             });
+
     } catch (error) {
         console.error('Login error:', error);
         res.status(500).json({ message: error.message });

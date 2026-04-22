@@ -10,7 +10,7 @@ const userSocketMap = new Map(); // userId -> socketId
 export const initSocket = (server) => {
   io = new Server(server, {
     cors: {
-      origin: process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(",") : ["http://localhost:5173", "http://localhost:4000"],
+      origin: ["http://localhost:5173", "http://localhost:4000", "https://buddy-pair-dating-app.vercel.app", "https://datingapp-backend-1e57.onrender.com"],
       methods: ["GET", "POST"],
     },
   });
