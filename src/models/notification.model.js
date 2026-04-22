@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 const notificationSchema = new mongoose.Schema({
   type: {
     type: String,
-    enum: ['message', 'friend_request', 'shortlist'],
+    enum: ['message', 'friend_request', 'friend_request_accepted', 'shortlist', 'profile_view'],
     required: true
   },
   sender: {

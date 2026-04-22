@@ -1,6 +1,5 @@
 import mongoose from 'mongoose';
 import UserModel from '../../models/user.model.js';
-import { socket } from '../../app.js';
 import { createNotification } from '../notification/notificationController.js';
 
 // Send a Friend Request

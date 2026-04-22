@@ -10,7 +10,7 @@ const userSocketMap = new Map(); // userId -> socketId
 export const initSocket = (server) => {
   io = new Server(server, {
     cors: {
-      origin: process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(",") : ["http://localhost:5173", "http://localhost:5000"],
+      origin: process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(",") : ["http://localhost:5173", "http://localhost:4000"],
       methods: ["GET", "POST"],
     },
   });

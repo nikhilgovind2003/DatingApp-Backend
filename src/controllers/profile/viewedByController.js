@@ -1,4 +1,5 @@
 import UserModel from "../../models/user.model.js";
+import { createNotification } from "../notification/notificationController.js";
 
 export const viewedBy = async (req, res) => {
     try {
@@ -24,13 +25,10 @@ export const viewedBy = async (req, res) => {
 
         // Update the viewedBy list
         const updatedUser = await UserModel.findByIdAndUpdate(
-            req.user._id,
-            { $push: { viewedBy: req.params.id } },
+            req.params.id, // The user BEING viewed
+            { $addToSet: { viewedBy: req.user._id } }, // Use addToSet to avoid duplicates and fix logic
             { new: true }
         );
-
-        console.log(updatedUser);
-        
 
         if (!updatedUser) {
             return res.status(404).json({
@@ -38,6 +36,9 @@ export const viewedBy = async (req, res) => {
                 message: "User not found"
             });
         }
+
+        // Create notification for the viewed user
+        await createNotification("profile_view", req.user._id, req.params.id);
 
         return res.status(200).json({
             success: true,

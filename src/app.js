@@ -7,20 +7,17 @@ import passport from './middlewares/passport.middleWare.js'
 import session from "express-session";
 import authRoutes from "./routes/auth.routers.js"
 import locationRouter from "./routes/location.routers.js"
-import { io as Client } from 'socket.io-client'; 
-
-
-import dotenv from 'dotenv'
 import {getStories, oneStory} from "./controllers/stories/stories.controller.js";
+import messageRoute from "./routes/message.routes.js";
+import notificationRoute from "./routes/notification.routes.js";
+import dotenv from 'dotenv'
 dotenv.config()
 
 const app = express();
 
-const socket = Client(process.env.BACKEND_URL);
-
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL ? process.env.FRONTEND_URL.split(",") : ["http://localhost:5173", "https://buddy-pair-dating-app.vercel.app"],
+    origin: ["http://localhost:5173", "https://buddy-pair-dating-app.vercel.app"],
     methods: ["GET", "POST","PUT","DELETE","PATCH"],
     credentials: true,
   })
@@ -48,6 +45,8 @@ app.use(passport.session());
 // routes/
 app.use("/", authRoutes)
 app.use("/api/v1/users", userRoute);
+app.use("/api/v1/messages", messageRoute);
+app.use("/api/v1/notifications", notificationRoute);
 
 // get user stories
 app.get("/story/:id", oneStory)
@@ -55,4 +54,4 @@ app.get("/story", getStories)
 
 app.use("/location", locationRouter)
 
-export {app, socket}
+export {app}

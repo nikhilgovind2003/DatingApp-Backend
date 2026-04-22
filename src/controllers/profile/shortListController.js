@@ -1,6 +1,5 @@
 import mongoose from 'mongoose';
 import UserModel from '../../models/user.model.js';
-import  {socket}  from '../../app.js';
 import { createNotification } from '../notification/notificationController.js';
 // Shortlist a Profile
 export const shortlistProfile = async (req, res) => {
@@ -89,11 +88,13 @@ export const removeShortlistedProfile = async (req, res) => {
       return res.status(404).json({ success: false, message: 'User or profile not found' });
     }
 
-    // Remove the profileId from the user's shortlistedProfiles array
+    // Remove the profileId from the user's arrays
     user.shortlistedProfiles = user.shortlistedProfiles.filter(id => id.toString() !== profileId.toString());
+    user.shortListedBy = user.shortListedBy.filter(id => id.toString() !== profileId.toString());
 
-    // Remove the userId from the profile's shortListedBy array
+    // Remove the userId from the profile's arrays
     profileToBeRemoved.shortListedBy = profileToBeRemoved.shortListedBy.filter(id => id.toString() !== userId.toString());
+    profileToBeRemoved.shortlistedProfiles = profileToBeRemoved.shortlistedProfiles.filter(id => id.toString() !== userId.toString());
 
     // Save both updated documents
     await Promise.all([user.save(), profileToBeRemoved.save()]);
