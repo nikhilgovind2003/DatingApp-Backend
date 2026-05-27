@@ -9,9 +9,9 @@ import ProfileModel from '../../models/profile.model.js';
 
 
 const cookieOptions = {
-    httpOnly: false,
-    secure: false,      // Set to true in production with HTTPS
-    sameSite: "lax",
+    httpOnly: true,
+    secure: true,      // Set to true in production with HTTPS
+    sameSite: "none",
     maxAge: 24 * 60 * 60 * 1000
 };
 

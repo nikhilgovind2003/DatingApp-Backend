@@ -22,9 +22,9 @@ console.log("token", token);
 
   if (user.googleSignup) {
     res.cookie('token', token, {
-      httpOnly: false,
-      secure: false,      // Set to true in production with HTTPS
-      sameSite: "lax",
+      httpOnly: true,
+      secure: true,      // Set to true in production with HTTPS
+      sameSite: "none",
       maxAge: 24 * 60 * 60 * 1000
     })
     res.cookie('user',
@@ -33,26 +33,26 @@ console.log("token", token);
         'isAuthenticated': true
       },
       {
-        httpOnly: false,
-        secure: false,      // Set to true in production with HTTPS
-        sameSite: "lax",  
+        httpOnly: true,
+        secure: true,      // Set to true in production with HTTPS
+        sameSite: "none",  
         maxAge: 24 * 60 * 60 * 1000
       }
     )
     return res.redirect(`http://localhost:5173/personal_details`)
   } else {
     res.cookie('token', token, {
-      httpOnly: false,
-      secure: false,      // Set to true in production with HTTPS
-      sameSite: "lax",
+      httpOnly: true,
+      secure: true,      // Set to true in production with HTTPS
+      sameSite: "none",
       maxAge: 24 * 60 * 60 * 1000
     })
     res.cookie('user',
       userData,
       {
-        httpOnly: false,
-        secure: false,      // Set to true in production with HTTPS
-        sameSite: "lax",
+        httpOnly: true,
+        secure: true,      // Set to true in production with HTTPS
+        sameSite: "none",
         maxAge: 24 * 60 * 60 * 1000
       }
     )
