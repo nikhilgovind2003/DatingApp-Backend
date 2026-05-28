@@ -8,17 +8,13 @@ export const loginSuccess = async (req, res) => {
 
 export const handleGoogleCallback = (req, res) => {
   const { user, token } = req.authData;
-const userData = {
-  ...user,
-  'isAuthenticated': true
-}
+  const userData = {
+    ...user,
+    'isAuthenticated': true
+  }
 
-console.log("user", user);
-console.log("token", token);
-
-  // if (!user) {
-  //   return res.redirect("http://localhost:5173/login");
-  // }
+  console.log("user", user);
+  console.log("token", token);
 
   if (user.googleSignup) {
     res.cookie('token', token, {
@@ -35,11 +31,11 @@ console.log("token", token);
       {
         httpOnly: true,
         secure: true,      // Set to true in production with HTTPS
-        sameSite: "none",  
+        sameSite: "none",
         maxAge: 24 * 60 * 60 * 1000
       }
     )
-    return res.redirect(`http://localhost:5173/personal_details`)
+    return res.redirect(`${process.env.FRONTEND_URL}/personal_details`)
   } else {
     res.cookie('token', token, {
       httpOnly: true,
@@ -56,10 +52,10 @@ console.log("token", token);
         maxAge: 24 * 60 * 60 * 1000
       }
     )
-    return res.redirect(`http://localhost:5173/home`);
+    return res.redirect(`${process.env.FRONTEND_URL}/home`);
   }
 };
 
 export const handleLogout = (req, res) => {
-  res.redirect("http://localhost:5173");
+  res.redirect(`${process.env.FRONTEND_URL}`);
 };
