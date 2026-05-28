@@ -23,6 +23,12 @@ passport.use(
                 let user = await userModel.findOne({ googleId: profile.id });  
 
                 if (!user) {  
+                    // Check if a user with this email already exists (local signup)
+                    const existingLocalUser = await userModel.findOne({ email: profile.emails[0].value });
+                    if (existingLocalUser) {
+                        return done(null, { error: 'already_registered_local' });
+                    }
+
                     user = new userModel({  
                         googleId: profile.id,  
                         firstName: profile.name.givenName,  

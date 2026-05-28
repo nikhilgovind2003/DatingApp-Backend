@@ -8,10 +8,12 @@ import otpGenerator from 'otp-generator';
 import ProfileModel from '../../models/profile.model.js';
 
 
+const isProduction = process.env.NODE_ENV === 'production' || process.env.FRONTEND_URL?.includes('vercel.app');
+
 const cookieOptions = {
-    httpOnly: true,
-    secure: true,      // Set to true in production with HTTPS
-    sameSite: "none",
+    httpOnly: false, // Let frontend read it
+    secure: isProduction,
+    sameSite: isProduction ? "none" : "lax",
     maxAge: 24 * 60 * 60 * 1000
 };
 
@@ -36,8 +38,19 @@ export const generateOtpAndSend = async (req, res) => {
         otpStore[email] = otp;
 
 
+        const isExistingUser = await UserModel.findOne({ email });
+        if (isExistingUser) {
+            return res.status(400).json({
+                success: false,
+                message: 'User already exists'
+            });
+        }
+
+
         // Send the OTP to the user's email
         await verificationEmail({ userEmail: email, otp });
+
+
 
         return res.status(200).json({
             success: true,
@@ -55,9 +68,6 @@ export const registerUser = async (req, res) => {
     try {
         const { firstName, lastName, email, password, otp } = req.body;
         console.log("otp:", otp, "email:", email);
-        console.log(otpStore);
-        console.log(password);
-        console.log(firstName);
 
         // Check if all required fields are provided
         if (!firstName || !lastName || !email || !password || !otp) {
