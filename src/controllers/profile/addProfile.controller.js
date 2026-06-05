@@ -1,5 +1,8 @@
 import ProfileModel from "../../models/profile.model.js";
 import uploadOnCloudinary from "../../utils/uploadOnCloudinary.js";
+import UserModel from "../../models/user.model.js";
+import mongoose from "mongoose";
+import { generateToken } from "../../utils/generateToken.js";
 
 export const createProfile = async (req, res) => {
     try {
@@ -56,36 +59,94 @@ export const createProfile = async (req, res) => {
         // In model hobbies is String, but consistent with interests we can keep it as string or change model.
         // Looking at models/profile.model.js: hobbies is String, interests is [String].
 
-        const newProfile = await ProfileModel.findOneAndUpdate(
-            { user: req.user._id },
-            {
-                age: Number(age),
-                bio,
-                gender,
-                location,
-                hobbies, // Keep as string as per model
-                qualification,
-                interests: interestsArr,
-                drinking,
-                smoking,
-                profileImage: {
-                    publicId: profileResponse.public_id,
-                    url: profileResponse.url
-                },
-                additionalImage: additionalImageArr,
-                reel: {
-                    publicId: reelResponse.public_id,
-                    url: reelResponse.url
-                },
-            },
-            { upsert: true, new: true, setDefaultsOnInsert: true }
-        );
+        let userId = req.user._id;
+        let finalUser = req.user;
+        let permanentToken = null;
 
-        return res.status(200).json({
-            success: true,
-            message: "Profile saved successfully",
-            profile: newProfile,
-        });
+        const session = await mongoose.startSession();
+        session.startTransaction();
+
+        try {
+            if (req.user.isTempGoogle) {
+                let existingUser = await UserModel.findOne({ googleId: req.user.googleId }).session(session);
+                if (!existingUser) {
+                    const userArr = await UserModel.create([{
+                        googleId: req.user.googleId,
+                        firstName: req.user.firstName,
+                        lastName: req.user.lastName,
+                        email: req.user.email,
+                        googleSignup: false,
+                        isActive: true,
+                        isVerified: true
+                    }], { session });
+                    existingUser = userArr[0];
+                }
+                userId = existingUser._id;
+                finalUser = existingUser;
+                permanentToken = generateToken(userId);
+            }
+
+            const newProfile = await ProfileModel.findOneAndUpdate(
+                { user: userId },
+                {
+                    age: Number(age),
+                    bio,
+                    gender,
+                    location,
+                    hobbies, // Keep as string as per model
+                    qualification,
+                    interests: interestsArr,
+                    drinking,
+                    smoking,
+                    profileImage: {
+                        publicId: profileResponse.public_id,
+                        url: profileResponse.url
+                    },
+                    additionalImage: additionalImageArr,
+                    reel: {
+                        publicId: reelResponse.public_id,
+                        url: reelResponse.url
+                    },
+                },
+                { upsert: true, new: true, setDefaultsOnInsert: true, session }
+            );
+
+            await session.commitTransaction();
+            session.endSession();
+
+            if (req.user.isTempGoogle) {
+                const isProduction = process.env.NODE_ENV === 'production' || process.env.FRONTEND_URL?.includes('vercel.app');
+                const cookieOptions = {
+                    httpOnly: false,
+                    path: '/',
+                    secure: isProduction,
+                    sameSite: isProduction ? "none" : "lax",
+                    maxAge: 24 * 60 * 60 * 1000
+                };
+                res.cookie("token", permanentToken, cookieOptions);
+                res.cookie("user", JSON.stringify({
+                    _id: finalUser._id,
+                    firstName: finalUser.firstName,
+                    lastName: finalUser.lastName,
+                    email: finalUser.email,
+                    isVerified: finalUser.isVerified,
+                    isActive: finalUser.isActive,
+                    isAuthenticated: true,
+                }), cookieOptions);
+            }
+
+            return res.status(200).json({
+                success: true,
+                message: "Profile saved successfully",
+                profile: newProfile,
+            });
+        } catch (error) {
+            if (session.inTransaction()) {
+                await session.abortTransaction();
+            }
+            session.endSession();
+            throw error;
+        }
     } catch (error) {
         console.error("Create Profile Error:", error);
         return res.status(500).json({

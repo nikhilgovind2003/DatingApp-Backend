@@ -13,6 +13,10 @@ export const verifyUser = async(req, res, next) => {
             });
         };
         const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET_KEY);
+        if (decodedToken.isTempGoogle) {
+            req.user = decodedToken;
+            return next();
+        }
         const user = await UserModel.findById(decodedToken?.id);
         if(!user) {
             return res.status(404).json({

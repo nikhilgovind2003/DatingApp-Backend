@@ -6,6 +6,7 @@ import { generateToken } from '../../utils/generateToken.js';
 import { verificationEmail } from '../../utils/verificationEmail.js';
 import otpGenerator from 'otp-generator';
 import ProfileModel from '../../models/profile.model.js';
+import mongoose from 'mongoose';
 
 
 const isProduction = process.env.NODE_ENV === 'production' || process.env.FRONTEND_URL?.includes('vercel.app');
@@ -66,6 +67,7 @@ export const generateOtpAndSend = async (req, res) => {
 
 // Registration function that includes OTP verification
 export const registerUser = async (req, res) => {
+    const session = await mongoose.startSession();
     try {
         const { firstName, lastName, email, password, otp } = req.body;
         console.log("otp:", otp, "email:", email);
@@ -80,8 +82,6 @@ export const registerUser = async (req, res) => {
 
         // Check if the OTP is correct
         if (!otpStore[email] || otpStore[email] !== otp) {
-
-
             return res.status(400).json({
                 success: false,
                 message: 'Invalid or expired OTP',
@@ -90,28 +90,46 @@ export const registerUser = async (req, res) => {
             });
         }
 
+        session.startTransaction();
+
         // OTP is correct, proceed with registration
-        let user = await UserModel.findOne({ email });
+        let user = await UserModel.findOne({ email }).session(session);
 
         if (user) {
+            await session.abortTransaction();
+            session.endSession();
             return res.status(400).json({
                 success: false,
                 message: 'User already exists'
             });
         }
 
-        // Create a new user
-        user = await UserModel.create({
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // Create a new user inside transaction
+        const userArr = await UserModel.create([{
             firstName,
             lastName,
             email,
-            password: await bcrypt.hash(password, 10),
+            password: hashedPassword,
             isVerified: true,
-            isActive: true // Mark user as verified since OTP was correct
-        });
+            isActive: true
+        }], { session });
+
+        const createdUser = userArr[0];
+
+        // Create a new profile inside transaction
+        await ProfileModel.create([{
+            user: createdUser._id,
+            qualification: 'Not specified'
+        }], { session });
+
+        // Commit transaction
+        await session.commitTransaction();
+        session.endSession();
 
         // Generate JWT token
-        const token = generateToken(user._id);
+        const token = generateToken(createdUser._id);
 
         // Remove OTP from store after successful registration
         delete otpStore[email];
@@ -119,12 +137,12 @@ export const registerUser = async (req, res) => {
         return res.status(201)
             .cookie("token", token, cookieOptions)
             .cookie("user", JSON.stringify({
-                _id: user._id,
-                firstName: user.firstName,
-                lastName: user.lastName,
-                email: user.email,
-                isVerified: user.isVerified,
-                isActive: user.isActive,
+                _id: createdUser._id,
+                firstName: createdUser.firstName,
+                lastName: createdUser.lastName,
+                email: createdUser.email,
+                isVerified: createdUser.isVerified,
+                isActive: createdUser.isActive,
                 isAuthenticated: true,
             }), cookieOptions)
             .json({
@@ -132,6 +150,10 @@ export const registerUser = async (req, res) => {
                 message: 'Registration successful!',
             });
     } catch (error) {
+        if (session.inTransaction()) {
+            await session.abortTransaction();
+        }
+        session.endSession();
         console.error('Registration error:', error);
         res.status(500).json({ message: error.message });
     }
@@ -142,6 +164,7 @@ export const registerUser = async (req, res) => {
 export const loginUser = async (req, res) => {
     try {
         const { email, password } = req.body;
+
 
         if (!email || !password) {
             return res.status(400).json({
@@ -157,6 +180,20 @@ export const loginUser = async (req, res) => {
                 message: 'User not found'
             });
         }
+
+
+        if(!user.password){
+            return res.status(404).json({
+                success: false,
+                message: 'Please try login with google'
+            }); 
+        }
+
+
+        console.log("Request password:", password);
+        console.log("DB password:", user.password);
+        console.log("User:", user);
+
         if (!(await bcrypt.compare(password, user.password))) {
             return res.status(401).json({
                 success: false,
@@ -188,6 +225,7 @@ export const loginUser = async (req, res) => {
     } catch (error) {
         console.error('Login error:', error);
         res.status(500).json({ message: error.message });
+
     }
 };
 

@@ -5,6 +5,8 @@ import userModel from '../models/user.model.js'; // Adjust path as needed
 import jwt from 'jsonwebtoken';  
 import dotenv from 'dotenv';  
 import { generateToken } from '../utils/generateToken.js';
+import mongoose from 'mongoose';
+import ProfileModel from '../models/profile.model.js';
 
 dotenv.config({  
     path: './.env'   
@@ -29,16 +31,19 @@ passport.use(
                         return done(null, { error: 'already_registered_local' });
                     }
 
-                    user = new userModel({  
-                        googleId: profile.id,  
-                        firstName: profile.name.givenName,  
-                        lastName: profile.name.familyName,  
-                        email: profile.emails[0].value,  
-                    });  
-                    user.googleSignup = true;
-                    user.isActive = true;
-                    user.isVerified = true; // Assuming initial verification  
-                    await user.save();  
+                    const tempUser = {
+                        isTempGoogle: true,
+                        googleId: profile.id,
+                        firstName: profile.name.givenName,
+                        lastName: profile.name.familyName,
+                        email: profile.emails[0].value,
+                        googleSignup: true,
+                        isActive: true,
+                        isVerified: true
+                    };
+
+                    const token = jwt.sign(tempUser, process.env.ACCESS_TOKEN_SECRET_KEY, { expiresIn: '1h' });
+                    return done(null, { user: tempUser, token });
                 } else {
                     user.googleSignup = false;
                     user.isActive = true;
