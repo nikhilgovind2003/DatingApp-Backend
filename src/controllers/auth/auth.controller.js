@@ -37,7 +37,6 @@ export const handleGoogleCallback = (req, res) => {
     res.cookie('token', token, cookieOptions)
     res.cookie('user',
       {
-        ...user,
         ...userObj,
         'isAuthenticated': true
       },

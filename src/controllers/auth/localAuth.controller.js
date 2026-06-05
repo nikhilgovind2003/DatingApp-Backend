@@ -12,6 +12,7 @@ const isProduction = process.env.NODE_ENV === 'production' || process.env.FRONTE
 
 const cookieOptions = {
     httpOnly: false, // Let frontend read it
+    path: '/',
     secure: isProduction,
     sameSite: isProduction ? "none" : "lax",
     maxAge: 24 * 60 * 60 * 1000
@@ -174,7 +175,7 @@ export const loginUser = async (req, res) => {
 
         res.status(200)
             .cookie("token", token, cookieOptions)
-            .cookie("user", { ...userWithoutPassword, "isAuthenticated": true }, cookieOptions)
+            .cookie("user", { ...userWithoutPassword.toObject(), "isAuthenticated": true }, cookieOptions)
             .cookie("myProfile", myProfile, cookieOptions)
             .json({
                 success: true,
