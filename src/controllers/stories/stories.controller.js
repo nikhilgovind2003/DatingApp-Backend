@@ -26,9 +26,10 @@ export const oneStory =
   async (req, res) => {
     // API to get story by ObjectId
     try {
-      const story = await ProfileModel.findById(req.params.id).select(
-        "profileImage, reel"
-      );
+      const story = await ProfileModel.findById(req.params.id, {
+        profileImage: 1,
+        reel: 1
+      });
       if (!story) {
         return res.status(404).json({ message: "Story not found" });
       }

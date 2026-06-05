@@ -11,8 +11,11 @@ export const handleGoogleCallback = (req, res) => {
     return res.redirect(`${process.env.FRONTEND_URL}/login?error=${req.authData.error}`);
   }
   const { user, token } = req.authData;
+
+  const userObj = user.toObject ? user.toObject() : user;
+
   const userData = {
-    ...user,
+    ...userObj,
     'isAuthenticated': true
   }
 
@@ -24,6 +27,7 @@ export const handleGoogleCallback = (req, res) => {
 
   const cookieOptions = {
     httpOnly: false, // Let client-side js-cookie read the user & token
+    path: '/',
     secure: isProduction,
     sameSite: isProduction ? "none" : "lax",
     maxAge: 24 * 60 * 60 * 1000
@@ -34,6 +38,7 @@ export const handleGoogleCallback = (req, res) => {
     res.cookie('user',
       {
         ...user,
+        ...userObj,
         'isAuthenticated': true
       },
       cookieOptions
