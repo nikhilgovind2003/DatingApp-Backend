@@ -12,13 +12,6 @@ export const handleGoogleCallback = (req, res) => {
   }
   const { user, token } = req.authData;
 
-  const userObj = user.toObject ? user.toObject() : user;
-
-  const userData = {
-    ...userObj,
-    'isAuthenticated': true
-  }
-
   console.log("google user", user);
   console.log("google token", token);
   console.log("req.authData", req.authData);
@@ -35,21 +28,10 @@ export const handleGoogleCallback = (req, res) => {
 
   if (user.googleSignup) {
     res.cookie('token', token, cookieOptions)
-    res.cookie('user',
-      {
-        ...userObj,
-        'isAuthenticated': true
-      },
-      cookieOptions
-    )
-    return res.redirect(`${process.env.FRONTEND_URL}/personal_details`)
+    return res.redirect(`${process.env.FRONTEND_URL}/auth/callback?dest=personal_details`)
   } else {
     res.cookie('token', token, cookieOptions)
-    res.cookie('user',
-      userData,
-      cookieOptions
-    )
-    return res.redirect(`${process.env.FRONTEND_URL}/home`);
+    return res.redirect(`${process.env.FRONTEND_URL}/auth/callback?dest=home`);
   }
 };
 

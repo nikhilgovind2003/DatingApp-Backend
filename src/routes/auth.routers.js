@@ -15,6 +15,10 @@ router.route("/auth/google/callback")
 
 router.route("/login/success").get(loginSuccess);
 
+router.route('/auth/me').get(verifyUser, (req, res) => {
+  res.json({ success: true, user: req.user, isAuthenticated: true, token: req.cookies.token });
+});
+
 router.route("/logout").get(logoutUser, handleLogout);
 
 
