@@ -24,7 +24,7 @@ import { matchBySpin } from "../controllers/spinner/spin.controller.js";
 import { getProfile, updateProfile } from "../controllers/Editprofile/Editprofile.js"
 import { editProfileValidator } from "../utils/profileValidation.js"
 import {getSortedAndFilteredUsers} from '../controllers/sortFilter/sortFilter.cotrller.js'
-import { getNotifications } from '../controllers/notification/notificationController.js'
+import { getNotifications, getSearchUsers } from '../controllers/notification/notificationController.js'
 
 
 const router = new Router();
@@ -115,5 +115,7 @@ router.post('/update-profile',verifyUser, upload.fields([
   
   // get notifications
 router.get('/notifications',verifyUser, getNotifications)
+
+router.get("/get-search-users", verifyUser, getSearchUsers);
 
 export default router;
