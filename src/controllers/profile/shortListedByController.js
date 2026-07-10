@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 import UserModel from "../../models/user.model.js";
 import { createNotification } from "../notification/notificationController.js";
 // Shortlist a Profile
-export const shortlistProfile = async (req, res) => {
+export const shortlistedByProfile = async (req, res) => {
   try {
     const userId = req.user._id; // The ID of the logged-in user
     const { profileId } = req.params; // The ID of the profile to be shortlisted
@@ -24,7 +24,7 @@ export const shortlistProfile = async (req, res) => {
     }
 
     // Check if the profile is already shortlisted
-    const isAlreadyShortlisted = user.shortlistedProfiles.includes(profileId);
+    const isAlreadyShortlisted = user.shortListedBy.includes(profileId);
     if (isAlreadyShortlisted) {
       return res.status(400).json({
         success: false,
@@ -41,8 +41,8 @@ export const shortlistProfile = async (req, res) => {
       });
     }
 
-    // Add the profileId to the logged-in user's shortlistedProfiles array
-    user.shortlistedProfiles.push(profileId);
+    // Add the profileId to the logged-in user's shortListedBy array
+    user.shortListedBy.push(profileId);
 
     // Add the userId to the profile's shortListedBy array
     profileToBeShortlisted.shortListedBy.push(userId);
@@ -66,7 +66,7 @@ export const shortlistProfile = async (req, res) => {
   }
 };
 
-export const shortlistProfileLists = async (req, res) => {
+export const shortlistedByProfileLists = async (req, res) => {
   try {
     const userId = req.user._id; // The ID of the logged-in user
     const user = await UserModel.findById(userId);
@@ -76,8 +76,8 @@ export const shortlistProfileLists = async (req, res) => {
         message: "User not found",
       });
     }
-    const shortlistedProfiles = await UserModel.find({
-      _id: { $in: user.shortlistedProfiles },
+    const shortListedBy = await UserModel.find({
+      _id: { $in: user.shortListedBy },
     })
       .select("firstName lastName")
       .populate({
@@ -87,7 +87,7 @@ export const shortlistProfileLists = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      shortlistedProfiles,
+      shortListedBy,
     });
   } catch (error) {
     res.status(500).json({
@@ -122,7 +122,7 @@ export const removeShortlistedProfile = async (req, res) => {
     }
 
     // Remove the profileId from the user's arrays
-    user.shortlistedProfiles = user.shortlistedProfiles.filter(
+    user.shortListedBy = user.shortListedBy.filter(
       (id) => id.toString() !== profileId.toString(),
     );
     user.shortListedBy = user.shortListedBy.filter(
@@ -133,8 +133,8 @@ export const removeShortlistedProfile = async (req, res) => {
     profileToBeRemoved.shortListedBy = profileToBeRemoved.shortListedBy.filter(
       (id) => id.toString() !== userId.toString(),
     );
-    profileToBeRemoved.shortlistedProfiles =
-      profileToBeRemoved.shortlistedProfiles.filter(
+    profileToBeRemoved.shortListedBy =
+      profileToBeRemoved.shortListedBy.filter(
         (id) => id.toString() !== userId.toString(),
       );
 
