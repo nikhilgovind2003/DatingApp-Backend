@@ -1,14 +1,39 @@
+import fs from "fs";
 import MessageModel from "../../models/message.model.js";
 import ConversationModel from "../../models/conversation.model.js";
 import ProfileModel from "../../models/profile.model.js";
 import { emitToUser } from "../../socket/socket.js";
 import { createNotification } from "../notification/notificationController.js";
+import uploadOnCloudinary from "../../utils/uploadOnCloudinary.js";
 
 export const sendMessage = async (req, res) => {
   try {
     const { id: receiverId } = req.params;
     const senderId = req.user._id;
     const { message } = req.body;
+
+    if (!message?.trim() && !req.file) {
+      return res.status(400).json({ error: "Message text or attachment is required" });
+    }
+
+    let attachment = null;
+    let messageType = "text";
+
+    if (req.file) {
+      if (req.file.mimetype.startsWith("image/")) {
+        messageType = "image";
+      } else if (req.file.mimetype.startsWith("audio/")) {
+        messageType = "audio";
+      } else {
+        fs.unlink(req.file.path, () => {});
+        return res.status(400).json({ error: "Unsupported attachment type" });
+      }
+
+      const uploaded = await uploadOnCloudinary(req.file.path, req.file.filename, "auto");
+      fs.unlink(req.file.path, () => {});
+      attachment = { url: uploaded.secure_url, publicId: uploaded.public_id };
+    }
+
     let chats = await ConversationModel.findOne({
       participants: { $all: [senderId, receiverId] },
     });
@@ -22,7 +47,9 @@ export const sendMessage = async (req, res) => {
     const newMessage = new MessageModel({
       senderId,
       receiverId,
-      message,
+      message: message || "",
+      attachment,
+      messageType,
       conversationId: chats._id,
     });
 
@@ -36,7 +63,9 @@ export const sendMessage = async (req, res) => {
     // SOCKET.IO: Emit message to receiver
     emitToUser(receiverId, "receiveMessage", {
       senderId,
-      message,
+      message: newMessage.message,
+      attachment,
+      messageType,
       conversationId: chats._id,
       createdAt: newMessage.createdAt
     });
@@ -60,7 +89,7 @@ export const getMessages = async (req, res) => {
       participants: { $all: [senderId, receiverId] },
     }).populate("message");
 
-    res.status(200).send(messages);
+    res.status(200).json(chats?.message || []);
   } catch (error) {
     console.log(error.message);
     res.send("Internal server error!!!");
@@ -81,6 +110,50 @@ export const markMessagesAsRead = async (req, res) => {
   } catch (error) {
     console.error("Error in markMessagesAsRead:", error);
     res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+export const getRecentMessagedUsers = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    const conversations = await ConversationModel.find({
+      participants: { $in: [userId] },
+    })
+      .populate({
+        path: "participants",
+        select: "firstName lastName email",
+      })
+      .sort({ updatedAt: -1 })
+      .limit(10);
+
+    const recentUsers = await Promise.all(
+      conversations.map(async (conv) => {
+        const otherParticipant = conv.participants.find(
+          (p) => p._id.toString() !== userId.toString()
+        );
+
+        if (!otherParticipant) return null;
+
+        const profile = await ProfileModel.findOne({
+          user: otherParticipant._id,
+        }).select("profileImage");
+
+        return {
+          _id: otherParticipant._id,
+          user: {
+            firstName: otherParticipant.firstName,
+            lastName: otherParticipant.lastName,
+          },
+          profileImage: profile?.profileImage || null,
+        };
+      })
+    );
+
+    res.status(200).json(recentUsers.filter((item) => item !== null));
+  } catch (error) {
+    console.error("Error in getRecentMessagedUsers:", error);
+    res.status(500).json({ error: error.message });
   }
 };
 
@@ -131,6 +204,6 @@ export const getChatList = async (req, res) => {
     res.status(200).json(chatList.filter(item => item !== null));
   } catch (error) {
     console.error("Error in getChatList:", error);
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({ error: error.message });
   }
 };

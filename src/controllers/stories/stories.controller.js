@@ -1,12 +1,12 @@
 import ProfileModel from "../../models/profile.model.js";
-import UserModel from "../../models/user.model.js";
-import { users } from "../usersDetails/userDetails.controller.js";
 
 export const getStories =
   ("/",
   async (req, res) => {
-    const user = await UserModel.find({}) 
-    const data = await ProfileModel.find({}).populate({ path: "user", select: ["firstName"] });
+    const data = await ProfileModel.find({ user: { $in: req.user.friends } }).populate({ path: "user", select: ["firstName"] });
+
+
+    console.log("data", data); 
 
     if (!data) {
       return res.status(404).json({
@@ -27,12 +27,20 @@ export const oneStory =
     // API to get story by ObjectId
     try {
       const story = await ProfileModel.findById(req.params.id, {
+        user: 1,
         profileImage: 1,
         reel: 1
       });
       if (!story) {
         return res.status(404).json({ message: "Story not found" });
       }
+
+      const isFriend = req.user.friends?.some((id) => id.toString() === story.user.toString());
+      const isSelf = story.user.toString() === req.user._id.toString();
+      if (!isFriend && !isSelf) {
+        return res.status(403).json({ message: "You are not allowed to view this story" });
+      }
+
       res.json(story);
     } catch (error) {
       if (error.kind === "ObjectId") {

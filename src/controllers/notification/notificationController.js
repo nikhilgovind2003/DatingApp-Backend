@@ -54,6 +54,24 @@ export const markAsRead = async (req, res) => {
     res.status(500).json({ error: "Error marking notification as read" });
   }
 };
+export const markMessageNotificationsAsRead = async (req, res) => {
+  const senderId = req.params.senderId;
+  const userId = req.user.id;
+  try {
+    await Notification.updateMany(
+      { receiver: userId, sender: senderId, type: "message", isRead: false },
+      { isRead: true },
+    );
+    // Notify frontend to update unread count
+    emitToUser(userId, "notificationRead", { sender: senderId });
+
+    res.status(200).json({ message: "Message notifications marked as read" });
+  } catch (err) {
+    res
+      .status(500)
+      .json({ error: "Error marking message notifications as read" });
+  }
+};
 export const markAllAsRead = async (req, res) => {
   const userId = req.user.id;
   try {
