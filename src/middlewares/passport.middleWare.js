@@ -15,7 +15,7 @@ dotenv.config({
 passport.use(  
     new OAuth2Strategy(  
         {  
-            clientID: process.env.GOOGLE_CLIENT_ID || "452060080985-pt4i5q1dribe6agj3ok3c7de9qv9p262.apps.googleusercontent.com",  
+            clientID: process.env.GOOGLE_CLIENT_ID,
             clientSecret: process.env.GOOGLE_CLIENT_SECRET,  
             callbackURL: `${process.env.BACKEND_URL}/auth/google/callback`,  
             scope: ['profile', 'email'],  
