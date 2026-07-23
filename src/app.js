@@ -8,6 +8,7 @@ import session from "express-session";
 import authRoutes from "./routes/auth.routers.js"
 import locationRouter from "./routes/location.routers.js"
 import {getStories, oneStory} from "./controllers/stories/stories.controller.js";
+import { verifyUser } from "./middlewares/verifyjwt.middleware.js";
 import messageRoute from "./routes/message.routes.js";
 import notificationRoute from "./routes/notification.routes.js";
 import dotenv from 'dotenv'
@@ -49,8 +50,8 @@ app.use("/api/v1/messages", messageRoute);
 app.use("/api/v1/notifications", notificationRoute);
 
 // get user stories
-app.get("/story/:id", oneStory)
-app.get("/story", getStories)
+app.get("/story/:id", verifyUser, oneStory)
+app.get("/story", verifyUser, getStories)
 
 app.use("/location", locationRouter)
 

@@ -6,9 +6,6 @@ export const getLocation = async (req, res) => {
   const { latitude, longitude } = req.body;
   const user = req.user._id;
 
-  console.log(user);
-  console.log(`Received location: Latitude ${latitude}, Longitude ${longitude}`);
-
   try {
     // Find the existing location document for the user
     let location = await LocationModel.findOne({ user: user });

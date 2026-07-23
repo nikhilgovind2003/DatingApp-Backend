@@ -6,13 +6,13 @@ export const users = async (req, res) => {
   try {
     // Fetch profiles and populate user data, excluding the current logged-in user
     const profiles = await ProfileModel.find({
-      user: { $ne: req.user._id }
-    }).populate('user');
+      user: { $ne: req.user._id },
+    }).populate("user");
 
     // Combine profiles with their respective users
     const combinedData = profiles.map((profile) => {
       const user = profile.user;
-      
+
       // Handle cases where the user might not be found (e.g., deleted user)
       if (!user) {
         return {
@@ -27,7 +27,7 @@ export const users = async (req, res) => {
           },
         };
       }
-      
+
       return {
         ...profile._doc,
         user: {
@@ -48,27 +48,44 @@ export const users = async (req, res) => {
   }
 };
 
-
 export const userProfile = async (req, res) => {
-  const userId = req.body.userId; // Assuming the userId is passed in req.body.userId
+  const userId = req.params.id; // Assuming the userId is passed in req.body.userId
+
   try {
-    const user = await ProfileModel.findOne({
-      user: req.params.id || userId
-    }).populate('user');
-    res.status(200).json(user);
+    const user = await UserModel.findById(userId).populate("profile");
+
+    if (!user) {
+      return res.status(404).json({
+        status: false,
+        message: "User not found",
+      });
+    }
+
+    const profile = await ProfileModel.findOne({ user: userId });
+
+    if (!profile) {
+      return res.status(404).json({
+        status: false,
+        message: "Profile not found",
+      });
+    }
+
+    res.status(200).json({ ...user.toObject(), profile });
   } catch (error) {
     console.error("Error fetching users:", error);
-    res.status(500).json({ error: "Failed to fetch users" });
+    res.status(500).json({ error: error.message });
   }
 };
 
 export const getAllProfilesExceptLoggedInUser = async (req, res) => {
   try {
     // Fetch the current user's profile to get genderPreference
-    const currentUserProfile = await ProfileModel.findOne({ user: req.user.id });
+    const currentUserProfile = await ProfileModel.findOne({
+      user: req.user.id,
+    });
 
     if (!currentUserProfile || !currentUserProfile.genderPreference) {
-      console.log("User profile or gender preference not found for user:", req.user.id);
+     
       return res.status(200).json([]); // Return empty list instead of crashing
     }
 
@@ -76,42 +93,38 @@ export const getAllProfilesExceptLoggedInUser = async (req, res) => {
     const userGenderPreference = currentUserProfile.genderPreference.trim();
     let preferredGender = [];
 
-    if (userGenderPreference === 'MEN') {
-      preferredGender = ['Male'];
-    } else if (userGenderPreference === 'WOMEN') {
-      preferredGender = ['Female'];
-    } else if (userGenderPreference === 'BOTH') {
-      preferredGender = ['Male', 'Female'];
+    if (userGenderPreference === "MEN") {
+      preferredGender = ["Male"];
+    } else if (userGenderPreference === "WOMEN") {
+      preferredGender = ["Female"];
+    } else if (userGenderPreference === "BOTH") {
+      preferredGender = ["Male", "Female"];
     } else {
       // Fallback if preference is set but doesn't match expected values
-      preferredGender = ['Male', 'Female'];
+      preferredGender = ["Male", "Female"];
     }
 
     // Fetch profiles that match the preferred gender and exclude the current user
     const profiles = await ProfileModel.find({
       user: { $ne: req.user.id }, // Exclude logged-in user
-      gender: { $in: preferredGender } // Filter based on gender preference
-    }).populate('user');
+      gender: { $in: preferredGender }, // Filter based on gender preference
+    }).populate("user");
 
     // Return the filtered profiles
     res.status(200).json(profiles);
-
   } catch (error) {
     console.error("Error fetching profiles:", error);
     res.status(500).json({ error: "Failed to fetch profiles" });
   }
 };
 
-
-
 export const getUserdetails = async (req, res) => {
-  const userid = req.user
+  const userid = req.user;
   try {
-    const user = await UserModel.find({ _id: userid })
+    const user = await UserModel.find({ _id: userid });
     res.status(200).json(user);
   } catch (error) {
     console.error("Error fetching user:", error);
-    res.status(500).json({ error: "Failed to fetch user" });
+    res.status(500).json({ error: erroor.message });
   }
-}
-
+};

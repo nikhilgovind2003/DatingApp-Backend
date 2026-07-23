@@ -68,6 +68,17 @@ const userSchema = new Schema(
 
 );
 
+userSchema.virtual("profile", {
+  ref: "Profile",
+  localField: "_id",
+  foreignField: "user",
+  justOne: true,
+});
+
+userSchema.set("toObject", { virtuals: true });
+userSchema.set("toJSON", { virtuals: true });
+
+
 const UserModel = new mongoose.model('User', userSchema);
 
 export default UserModel;

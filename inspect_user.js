@@ -16,7 +16,6 @@ import LocationModel from './src/models/location.model.js';
 
 const fetchUserData = async () => {
     try {
-        console.log("URI:", process.env.DATABASE_CONNECTION_URI);
         if (!process.env.DATABASE_CONNECTION_URI) {
             throw new Error("DB URI is missing from .env");
         }

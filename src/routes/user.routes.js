@@ -13,7 +13,7 @@ import { getProfileByQualification } from "../controllers/profileQualification/p
 import { userProfile, users , getUserdetails,getAllProfilesExceptLoggedInUser } from "../controllers/usersDetails/userDetails.controller.js";
 import { compareUserWithAllOthers } from "../controllers/userMatchPercent/userMatchPercent.js";
 import { editReel } from "../controllers/profile/reel.controller.js";
-import { shortlistProfile ,removeShortlistedProfile} from '../controllers/profile/shortListController.js';
+import { shortlistProfile ,removeShortlistedProfile, shortlistProfileLists} from '../controllers/profile/shortListController.js';
 import{RejectFriendRequest} from "../controllers/profile/rejectFriendRequest.controller.js"
 import { acceptFriendRequest,removeFriendRequest, sendFriendRequest } from "../controllers/profile/friendRequestController.js";
 import { viewedBy } from "../controllers/profile/viewedByController.js";
@@ -24,7 +24,8 @@ import { matchBySpin } from "../controllers/spinner/spin.controller.js";
 import { getProfile, updateProfile } from "../controllers/Editprofile/Editprofile.js"
 import { editProfileValidator } from "../utils/profileValidation.js"
 import {getSortedAndFilteredUsers} from '../controllers/sortFilter/sortFilter.cotrller.js'
-import { getNotifications } from '../controllers/notification/notificationController.js'
+import { getNotifications, getSearchUsers } from '../controllers/notification/notificationController.js'
+import { shortlistedByProfileLists } from "../controllers/profile/shortListedByController.js";
 
 
 const router = new Router();
@@ -90,9 +91,11 @@ router.patch('/accept/:from', verifyUser, acceptFriendRequest);
 router.patch('/reject/:from',verifyUser,RejectFriendRequest)
 
 
-// Route to shortlist a profile
-router.post('/shortlist/:profileId', verifyUser, shortlistProfile);
 
+
+// Route to shortlist a profile
+router.get("/shortlist", verifyUser, shortlistProfileLists);
+router.post('/shortlist/:profileId', verifyUser, shortlistProfile);
 router.delete('/delete-shortlist/:profileId', verifyUser, removeShortlistedProfile);
 
 router.patch('/viewed-by/:id', verifyUser, viewedBy);
@@ -115,5 +118,10 @@ router.post('/update-profile',verifyUser, upload.fields([
   
   // get notifications
 router.get('/notifications',verifyUser, getNotifications)
+
+router.get("/get-search-users", verifyUser, getSearchUsers);
+
+// Shortlisted By 
+router.get("/shortlisted-by-user",verifyUser, shortlistedByProfileLists)
 
 export default router;

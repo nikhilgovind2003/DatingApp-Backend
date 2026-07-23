@@ -14,7 +14,16 @@ const MessageSchema = new mongoose.Schema(
     },
     message: {
       type: String,
-      required: true,
+      default: "",
+    },
+    attachment: {
+      url: { type: String, default: null },
+      publicId: { type: String, default: null },
+    },
+    messageType: {
+      type: String,
+      enum: ["text", "image", "audio"],
+      default: "text",
     },
     conversationId: {
       type: mongoose.Schema.Types.ObjectId,
