@@ -1,28 +1,12 @@
-import nodemailer from "nodemailer";
+import { brevo, brevoSender } from "./brevoClient.js";
 
 export const verificationEmail = async ({ userEmail, otp }) => {
-
-    console.log("crendentials", userEmail, otp)
-
-    const transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST,
-        port: Number(process.env.SMTP_PORT) || 587,
-        secure: process.env.SMTP_SECURE === 'true', // true for 465, false for 587
-        auth: {
-            user: process.env.SMTP_USER,
-            pass: process.env.SMTP_PASS,
-        },
-        family: 4, // force IPv4 — Render's network can't route outbound IPv6 to Gmail, causing ETIMEDOUT
-        connectionTimeout: 10000,
-        greetingTimeout: 10000,
-        socketTimeout: 15000,
-    });
-
-    const mailOptions = {
-        from: `"Buddy Pair Support" <${process.env.SMTP_USER}>`,
-        to: userEmail,
-        subject: 'Verify Your Email - Buddy Pair OTP',
-        html: `
+    try {
+        await brevo.transactionalEmails.sendTransacEmail({
+            sender: brevoSender,
+            to: [{ email: userEmail }],
+            subject: 'Verify Your Email - Buddy Pair OTP',
+            htmlContent: `
         <!DOCTYPE html>
         <html>
         <head>
@@ -83,10 +67,7 @@ export const verificationEmail = async ({ userEmail, otp }) => {
         </body>
         </html>
         `,
-    };
-
-    try {
-        await transporter.sendMail(mailOptions);
+        });
         console.log('OTP Email sent successfully to', userEmail);
     } catch (error) {
         console.error('Error sending OTP email:', error);
