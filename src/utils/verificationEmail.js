@@ -12,6 +12,7 @@ export const verificationEmail = async ({ userEmail, otp }) => {
             user: process.env.SMTP_USER,
             pass: process.env.SMTP_PASS,
         },
+        family: 4, // force IPv4 — Render's network can't route outbound IPv6 to Gmail, causing ETIMEDOUT
     });
 
     const mailOptions = {
