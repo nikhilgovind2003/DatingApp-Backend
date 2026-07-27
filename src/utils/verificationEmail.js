@@ -13,6 +13,9 @@ export const verificationEmail = async ({ userEmail, otp }) => {
             pass: process.env.SMTP_PASS,
         },
         family: 4, // force IPv4 — Render's network can't route outbound IPv6 to Gmail, causing ETIMEDOUT
+        connectionTimeout: 10000,
+        greetingTimeout: 10000,
+        socketTimeout: 15000,
     });
 
     const mailOptions = {
