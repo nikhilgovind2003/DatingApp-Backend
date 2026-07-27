@@ -177,7 +177,7 @@ export const loginUser = async (req, res) => {
         if (!user) {
             return res.status(404).json({
                 success: false,
-                message: 'User not found'
+                message: `This email doesn't exist. Please register.`
             });
         }
 
