@@ -45,7 +45,7 @@ export const markAsRead = async (req, res) => {
   const notificationId = req.params.id;
   const userId = req.user.id;
   try {
-    await Notification.findByIdAndUpdate(notificationId, { isRead: true });
+    await Notification.findOneAndUpdate({ _id: notificationId, receiver: userId }, { isRead: true });
     // Notify frontend to update unread count
     emitToUser(userId, "notificationRead", { notificationId });
 
@@ -94,12 +94,12 @@ export const getSearchUsers = async (req, res) => {
   const userId = req?.user?._id;
 
   try {
-    const regex = new RegExp(search ?? "", "i");
+    const safeSearch = String(search ?? "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
     const users = await UserModel.aggregate([
       {
         $match: {
-          _id: { $ne: new mongoose.Types.ObjectId(userId) },
+          _id: { $ne: new mongoose.Types.ObjectId(String(userId)) },
         },
       },
       {
@@ -123,7 +123,7 @@ export const getSearchUsers = async (req, res) => {
               input: {
                 $concat: ["$firstName", " ", "$lastName"],
               },
-              regex: search ?? "",
+              regex: safeSearch,
               options: "i",
             },
           },
@@ -131,7 +131,7 @@ export const getSearchUsers = async (req, res) => {
       },
       {
         $project: {
-          _id: 0,
+          _id: 1,
           firstName: 1,
           lastName: 1,
           location: "$profile.location",

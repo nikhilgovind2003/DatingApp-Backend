@@ -89,7 +89,7 @@ export const updateProfile = async (req, res) => {
     if (qualification) profileUpdate.qualification = qualification;
 
     // Handle profile image
-    if (req.files["profileImage"]) {
+    if (req.files?.["profileImage"]) {
       if (profile.profileImage && profile.profileImage.publicId) {
         await deleteFromCloudinary(profile.profileImage.publicId);
       }
@@ -105,7 +105,7 @@ export const updateProfile = async (req, res) => {
     }
 
     // Handle additional images
-    if (req.files["additionalImg"]) {
+    if (req.files?.["additionalImg"]) {
       if (req.files["additionalImg"].length > 3) {
         return res
           .status(400)
@@ -136,9 +136,9 @@ export const updateProfile = async (req, res) => {
     }
 
     // Handle reel
-    if (req.files["reel"]) {
+    if (req.files?.["reel"]) {
       if (profile.reel && profile.reel.publicId) {
-        await deleteFromCloudinary(profile.reel.publicId);
+        await deleteFromCloudinary(profile.reel.publicId, "video");
       }
       const reel = req.files["reel"][0];
       const uploadedReel = await uploadToCloudinary(reel.path, "reels");

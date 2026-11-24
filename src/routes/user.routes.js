@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { registerUser, generateOtpAndSend, loginUser } from "../controllers/auth/localAuth.controller.js";
-import { verifyUser } from "../middlewares/verifyjwt.middleware.js";
+import { verifyUser, verifyUserOrTempGoogle } from "../middlewares/verifyjwt.middleware.js";
 import { createProfile } from "../controllers/profile/addProfile.controller.js";
 import upload from "../middlewares/multer.middleware.js";
 import { relationshipGoalsController } from "../controllers/profile/relationshipGoalsController.js";
@@ -30,13 +30,19 @@ import { shortlistedByProfileLists } from "../controllers/profile/shortListedByC
 
 const router = new Router();
 
+// the :id path param must be the logged-in user's own id
+const selfOnly = (req, res, next) =>
+  String(req.params.id) === String(req.user._id)
+    ? next()
+    : res.status(403).json({ success: false, message: "Forbidden" });
+
 // Routes from emailotp branch
 router.route("/register").post(registerUser);
 router.route("/generateotp").post(generateOtpAndSend);
 router.route("/login").post(loginUser);
 
 // Routes from main branch
-router.route('/profile-details').post(verifyUser, upload.fields([
+router.route('/profile-details').post(verifyUserOrTempGoogle, upload.fields([
     { name: 'profile', maxCount: 1 },
     { name: 'additionalImg', maxCount: 3 },
     { name: 'reel', maxCount: 1 },
@@ -53,16 +59,16 @@ router.post('/job_details', verifyUser, jobDetails);
 router.patch('/more_job_details', verifyUser, moreJobDetails);
 
 //partner preferences
-router.post('/preferences/:id', createPartnerPreference);
-router.get('/preferences/:id', getPartnerPreferenceById);
-router.put('/preferences/:id', updatePartnerPreference);
-router.delete('/preferences/:id', deletePartnerPreference);
+router.post('/preferences/:id', verifyUser, selfOnly, createPartnerPreference);
+router.get('/preferences/:id', verifyUser, selfOnly, getPartnerPreferenceById);
+router.put('/preferences/:id', verifyUser, updatePartnerPreference);
+router.delete('/preferences/:id', verifyUser, deletePartnerPreference);
 
 //get profile by desigination
 router.get('/profile/designations',verifyUser,getProfileByDesigination)
 //get profile by Qualification
 router.get('/profile/qualification',verifyUser,getProfileByQualification)
-router.get('/profile/:id',userProfile)
+router.get('/profile/:id',verifyUser,userProfile)
 
 //get profile by location
 router.post('/getlocation',verifyUser,getLocation)
@@ -103,7 +109,7 @@ router.patch('/viewed-by/:id', verifyUser, viewedBy);
 // Route to get profiles with sort and filter
 router.get('/profiles', verifyUser, getProfiles);
 
-router.post('/sortfilter/:id',getSortedAndFilteredUsers)
+router.post('/sortfilter/:id',verifyUser, selfOnly, getSortedAndFilteredUsers)
 
 router.post("/messages/send/:id",verifyUser, sendMessage)
 router.get("/messages/:id",verifyUser, getMessages)

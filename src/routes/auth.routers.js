@@ -3,7 +3,7 @@ import passport from '../middlewares/passport.middleWare.js';
 import { handleGoogleCallback, handleLogout, loginSuccess } from "../controllers/auth/auth.controller.js";
 import { googleAuthCallback, logoutUser } from "../middlewares/googleAuth.middleware.js";
 import { registerUser, loginUser, forgotPassword, resetPassword, logout, changePassword } from '../controllers/auth/localAuth.controller.js';
-import { verifyUser } from "../middlewares/verifyjwt.middleware.js";
+import { verifyUser, verifyUserOrTempGoogle } from "../middlewares/verifyjwt.middleware.js";
 
 const router = Router();
 
@@ -15,7 +15,7 @@ router.route("/auth/google/callback")
 
 router.route("/login/success").get(loginSuccess);
 
-router.route('/auth/me').get(verifyUser, (req, res) => {
+router.route('/auth/me').get(verifyUserOrTempGoogle, (req, res) => {
   res.json({ success: true, user: req.user, isAuthenticated: true, token: req.cookies.token });
 });
 

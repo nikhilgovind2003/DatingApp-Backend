@@ -1,7 +1,7 @@
 import LocationModel from "../../models/location.model.js";
 import ProfileModel from "../../models/profile.model.js";
 
-let lastFetchedIndex = 0;
+const spinIndexByUser = new Map(); // userId -> next index
 export const matchBySpin = async (req, res) => {
   const userId = req.user._id;
 
@@ -100,12 +100,17 @@ export const matchBySpin = async (req, res) => {
     ]);
 
     // Ensure lastFetchedIndex is within the bounds of the array
+    if (!nearestUsers.length) {
+      return res.status(404).json({ message: "No nearby users found" });
+    }
+    const key = String(userId);
+    let lastFetchedIndex = spinIndexByUser.get(key) || 0;
     if (lastFetchedIndex >= nearestUsers.length) {
       lastFetchedIndex = 0; // Reset index if all users have been fetched
     }
 
     const userToSend = nearestUsers[lastFetchedIndex];
-    lastFetchedIndex++;
+    spinIndexByUser.set(key, lastFetchedIndex + 1);
 
     res.json(userToSend);
     

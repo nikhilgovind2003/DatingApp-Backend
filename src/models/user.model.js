@@ -75,8 +75,15 @@ userSchema.virtual("profile", {
   justOne: true,
 });
 
-userSchema.set("toObject", { virtuals: true });
-userSchema.set("toJSON", { virtuals: true });
+const stripSecrets = (_doc, ret) => {
+  delete ret.password;
+  delete ret.refreshToken;
+  delete ret.forgotPasswordToken;
+  delete ret.forgotPasswordExpiry;
+  return ret;
+};
+userSchema.set("toObject", { virtuals: true, transform: stripSecrets });
+userSchema.set("toJSON", { virtuals: true, transform: stripSecrets });
 
 
 const UserModel = new mongoose.model('User', userSchema);

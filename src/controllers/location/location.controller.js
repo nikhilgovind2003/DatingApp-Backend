@@ -4,6 +4,9 @@ import ProfileModel from '../../models/profile.model.js';
 
 export const getLocation = async (req, res) => {
   const { latitude, longitude } = req.body;
+  if (!Number.isFinite(Number(latitude)) || !Number.isFinite(Number(longitude))) {
+    return res.status(400).json({ error: "latitude and longitude are required" });
+  }
   const user = req.user._id;
 
   try {
@@ -16,19 +19,17 @@ export const getLocation = async (req, res) => {
         user: user,
         location: {
           type: "Point",
-          coordinates: [latitude, longitude],
+          coordinates: [Number(longitude), Number(latitude)],
         },
       });
       await location.save();
-      console.log("New location model created");
     } else {
       // If a document exists, update the existing location
       location.location = {
         type: "Point",
-        coordinates: [latitude, longitude],
+        coordinates: [Number(longitude), Number(latitude)],
       };
       await location.save();
-      console.log("Location document updated");
     }
 
     res.status(200).json({ message: "User location updated successfully" });
@@ -48,7 +49,7 @@ export const matchByLocation = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    const [userLat, userLon] = currentUserLocation.location.coordinates || [null, null];
+    const [userLon, userLat] = currentUserLocation.location.coordinates || [null, null];
     if (userLat === null || userLon === null) {
       return res.status(400).json({ message: "User location not available" });
     }
@@ -77,7 +78,7 @@ export const matchByLocation = async (req, res) => {
     const nearestUsers = await LocationModel.aggregate([
       {
         $geoNear: {
-          near: { type: "Point", coordinates: [userLat, userLon] },
+          near: { type: "Point", coordinates: [userLon, userLat] },
           distanceField: "distance",
           maxDistance: 500000, // 500 km
           spherical: true,

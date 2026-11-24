@@ -18,29 +18,25 @@ const app = express();
 
 app.use(
   cors({
-    origin: ["http://localhost:5173", "https://buddy-pair-dating-app.vercel.app"],
-    methods: ["GET", "POST","PUT","DELETE","PATCH"],
+    origin: [...new Set(["http://localhost:5173", "https://buddy-pair-dating-app.vercel.app", process.env.FRONTEND_URL?.replace(/\/$/, "")].filter(Boolean))],
+    methods: ["GET", "POST","PUT","DELETE","PATCH","OPTIONS"],
     credentials: true,
   })
 );
-app.use(express.json());
-app.use(express.urlencoded({ extended: true, limit: "16kb" }));
+app.use(express.json({ limit: "1mb" }));
+app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 app.use(cookieParser());
-
-// Handle preflight requests (OPTIONS)
-app.options('*', cors());
 
 // Configure session middleware
 app.use(
   session({
-    secret: "upbwgfqrgtiqpfvqeig330iv39buiv", // replace with your secret key
+    secret: process.env.SESSION_SECRET || process.env.JWT_SECRET || "dev-session-secret",
     resave: false, // don't save session if unmodified
-    saveUninitialized: true, // save uninitialized sessions
+    saveUninitialized: false, // save uninitialized sessions
     cookie: { secure: false }, // set to true if using HTTPS
   })
 );
 app.use(passport.initialize());
-app.use(passport.session());
 // passport.use(new LocalStrategy(authUser))
 
 // routes/

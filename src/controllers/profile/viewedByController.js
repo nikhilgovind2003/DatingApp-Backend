@@ -4,7 +4,7 @@ import { createNotification } from "../notification/notificationController.js";
 export const viewedBy = async (req, res) => {
     try {
         // Find the user
-        const user = await UserModel.findById(req.user._id);
+        const user = await UserModel.findById(req.params.id).select('viewedBy');
 
         if (!user) {
             return res.status(404).json({
@@ -14,11 +14,12 @@ export const viewedBy = async (req, res) => {
         }
 
         // Check if the user has already been viewed
-        const alreadyViewed = user.viewedBy.some(u => u.toString() === req.params.id);
+        const alreadyViewed = user.viewedBy.some(u => u.toString() === req.user._id.toString());
 
         if (alreadyViewed) {
-            return res.status(400).json({
-                success: false,
+            return res.status(200).json({
+                success: true,
+                alreadyViewed: true,
                 message: "User has already been viewed"
             });
         }

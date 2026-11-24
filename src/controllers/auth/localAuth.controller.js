@@ -36,9 +36,9 @@ export const generateOtpAndSend = async (req, res) => {
             lowerCaseAlphabets: false
         });
 
-        // Store OTP and email temporarily
-        otpStore[email] = otp;
-
+        if (!email) {
+            return res.status(400).json({ success: false, message: 'Email is required' });
+        }
 
         const isExistingUser = await UserModel.findOne({ email });
         if (isExistingUser) {
@@ -50,6 +50,7 @@ export const generateOtpAndSend = async (req, res) => {
 
 
         // Send the OTP to the user's email
+        otpStore[email] = { otp, expires: Date.now() + 10 * 60 * 1000 };
         await verificationEmail({ userEmail: email, otp });
 
 
@@ -70,7 +71,6 @@ export const registerUser = async (req, res) => {
     const session = await mongoose.startSession();
     try {
         const { firstName, lastName, email, password, otp } = req.body;
-        console.log("otp:", otp, "email:", email);
 
         // Check if all required fields are provided
         if (!firstName || !lastName || !email || !password || !otp) {
@@ -79,14 +79,14 @@ export const registerUser = async (req, res) => {
                 message: 'All fields are required'
             });
         }
+        // (session ended in finally)
 
         // Check if the OTP is correct
-        if (!otpStore[email] || otpStore[email] !== otp) {
+        const stored = otpStore[email];
+        if (!stored || stored.expires < Date.now() || stored.otp !== String(otp).trim()) {
             return res.status(400).json({
                 success: false,
-                message: 'Invalid or expired OTP',
-                otpStore: otpStore[email],
-                currentOtp: otp
+                message: 'Invalid or expired OTP'
             });
         }
 
@@ -97,7 +97,6 @@ export const registerUser = async (req, res) => {
 
         if (user) {
             await session.abortTransaction();
-            session.endSession();
             return res.status(400).json({
                 success: false,
                 message: 'User already exists'
@@ -126,7 +125,6 @@ export const registerUser = async (req, res) => {
 
         // Commit transaction
         await session.commitTransaction();
-        session.endSession();
 
         // Generate JWT token
         const token = generateToken(createdUser._id);
@@ -153,9 +151,10 @@ export const registerUser = async (req, res) => {
         if (session.inTransaction()) {
             await session.abortTransaction();
         }
-        session.endSession();
         console.error('Registration error:', error);
         res.status(500).json({ message: error.message });
+    } finally {
+        session.endSession();
     }
 };
 
@@ -190,10 +189,6 @@ export const loginUser = async (req, res) => {
         }
 
 
-        console.log("Request password:", password);
-        console.log("DB password:", user.password);
-        console.log("User:", user);
-
         if (!(await bcrypt.compare(password, user.password))) {
             return res.status(401).json({
                 success: false,
@@ -212,8 +207,7 @@ export const loginUser = async (req, res) => {
 
         res.status(200)
             .cookie("token", token, cookieOptions)
-            .cookie("user", { ...userWithoutPassword.toObject(), "isAuthenticated": true }, cookieOptions)
-            .cookie("myProfile", myProfile, cookieOptions)
+            .cookie("user", JSON.stringify({ ...userWithoutPassword.toObject(), "isAuthenticated": true }), cookieOptions)
             .json({
                 success: true,
                 message: 'Login Successfully!',
@@ -243,22 +237,20 @@ export const forgotPassword = async (req, res) => {
         user.forgotPasswordToken = token;
         user.forgotPasswordExpiry = Date.now() + 300000;
         await user.save();
-        const response = await sendResetPasswordEmail({
+        await sendResetPasswordEmail({
             userEmail: user.email,
             token,
             userId: user._id,
         })
-        console.log(response)
         return res.status(200).json({
             success: true,
-            message: "Check your email",
-            response
+            message: "Check your email"
         })
     } catch (error) {
         console.error('Forgot password error:', error);
         return res.status(500).json({
             success: false,
-            message: error
+            message: error.message
         })
     }
 }
@@ -266,7 +258,6 @@ export const forgotPassword = async (req, res) => {
 export const resetPassword = async (req, res) => {
     try {
         const { user, token } = req.query; // Correctly accessing req.query
-        console.log('query', req.query); // Log req.query to verify inputs
 
         const { password } = req.body;
         if (!password) {
@@ -314,7 +305,6 @@ export const resetPassword = async (req, res) => {
 
 export const logout = async (req, res) => {
     try {
-        console.log(req.user)
         const user = await UserModel.findById(req?.user?._id);
         if (!user) {
             return res.status(404).json({
@@ -324,16 +314,11 @@ export const logout = async (req, res) => {
         }
         user.isActive = false;
         await user.save();
-        res.cookie("token", "", {
-            httpOnly: true,
-            expires: new Date(Date.now()), // Expire the cookie immediately
-        }).cookie("connect.sid", "", {
-            httpOnly: true,
-            expires: new Date(0),
-        }).cookie("user", "", {
-            httpOnly: true,
-            expires: new Date(0),
-        })
+        const clearOpts = { path: '/', secure: cookieOptions.secure, sameSite: cookieOptions.sameSite };
+        res.clearCookie("token", clearOpts)
+            .clearCookie("user", clearOpts)
+            .clearCookie("myProfile", clearOpts)
+            .clearCookie("connect.sid", { path: '/' });
         return res.status(200).json({
             success: true,
             message: "User successfully logged out"

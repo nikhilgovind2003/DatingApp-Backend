@@ -1,11 +1,7 @@
-import { brevo, brevoSender } from './brevoClient.js';
+import { sendMail } from './mailer.js';
 
 export const sendResetPasswordEmail = async ({ userEmail, token, userId }) => {
-    await brevo.transactionalEmails.sendTransacEmail({
-        sender: brevoSender,
-        to: [{ email: userEmail }],
-        subject: 'Reset Your Password - Buddy Pair',
-        htmlContent: `
+    await sendMail({ to: userEmail, subject: 'Reset Your Password - Buddy Pair', html: `
         <!DOCTYPE html>
         <html>
         <head>

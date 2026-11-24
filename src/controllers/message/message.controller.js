@@ -1,4 +1,6 @@
 import fs from "fs";
+import mongoose from "mongoose";
+import UserModel from "../../models/user.model.js";
 import MessageModel from "../../models/message.model.js";
 import ConversationModel from "../../models/conversation.model.js";
 import ProfileModel from "../../models/profile.model.js";
@@ -11,6 +13,15 @@ export const sendMessage = async (req, res) => {
     const { id: receiverId } = req.params;
     const senderId = req.user._id;
     const { message } = req.body;
+
+    if (!mongoose.isValidObjectId(receiverId) || String(receiverId) === String(senderId)) {
+      if (req.file) fs.unlink(req.file.path, () => {});
+      return res.status(400).json({ error: "Invalid receiver" });
+    }
+    if (!(await UserModel.exists({ _id: receiverId }))) {
+      if (req.file) fs.unlink(req.file.path, () => {});
+      return res.status(404).json({ error: "Receiver not found" });
+    }
 
     if (!message?.trim() && !req.file) {
       return res.status(400).json({ error: "Message text or attachment is required" });
@@ -29,8 +40,7 @@ export const sendMessage = async (req, res) => {
         return res.status(400).json({ error: "Unsupported attachment type" });
       }
 
-      const uploaded = await uploadOnCloudinary(req.file.path, req.file.filename, "auto");
-      fs.unlink(req.file.path, () => {});
+      const uploaded = await uploadOnCloudinary(req.file.path, "messages", "auto");
       attachment = { url: uploaded.secure_url, publicId: uploaded.public_id };
     }
 
@@ -62,7 +72,10 @@ export const sendMessage = async (req, res) => {
 
     // SOCKET.IO: Emit message to receiver
     emitToUser(receiverId, "receiveMessage", {
+      _id: newMessage._id,
       senderId,
+      receiverId,
+      isRead: false,
       message: newMessage.message,
       attachment,
       messageType,
@@ -85,14 +98,17 @@ export const getMessages = async (req, res) => {
     const { id: receiverId } = req.params;
     const senderId = req.user._id;
 
+    if (!mongoose.isValidObjectId(receiverId)) {
+      return res.status(400).json({ error: "Invalid user id" });
+    }
     let chats = await ConversationModel.findOne({
       participants: { $all: [senderId, receiverId] },
     }).populate("message");
 
     res.status(200).json(chats?.message || []);
   } catch (error) {
-    console.log(error.message);
-    res.send("Internal server error!!!");
+    console.error("Error in getMessages:", error.message);
+    res.status(500).json({ error: "Internal server error" });
   }
 };
 

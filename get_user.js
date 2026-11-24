@@ -1,7 +1,8 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
+import 'dotenv/config';
 
-const uri = "mongodb+srv://govindnikhil508:buddypairpassword@cluster0.9dbzy.mongodb.net/buddy_pair";
+const uri = process.env.DATABASE_CONNECTION_URI;
 
 async function run() {
   await mongoose.connect(uri);

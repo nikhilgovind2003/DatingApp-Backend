@@ -10,11 +10,10 @@ export const handleGoogleCallback = (req, res) => {
   if (req.authData && req.authData.error) {
     return res.redirect(`${process.env.FRONTEND_URL}/login?error=${req.authData.error}`);
   }
+  if (!req.authData || !req.authData.user) {
+    return res.redirect(`${process.env.FRONTEND_URL}/login?error=google_auth_failed`);
+  }
   const { user, token } = req.authData;
-
-  console.log("google user", user);
-  console.log("google token", token);
-  console.log("req.authData", req.authData);
 
   const isProduction = process.env.NODE_ENV === 'production' || process.env.FRONTEND_URL?.includes('vercel.app');
 

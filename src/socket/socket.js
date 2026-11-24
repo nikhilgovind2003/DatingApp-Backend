@@ -1,79 +1,71 @@
 import { Server } from "socket.io";
+import jwt from "jsonwebtoken";
+import cookie from "cookie";
 import UserModel from "../models/user.model.js";
 
 let io;
-const userSocketMap = new Map(); // userId -> socketId
+
+const isOnline = (userId) => (io?.sockets.adapter.rooms.get(String(userId))?.size || 0) > 0;
 
 /**
  * Initialize Socket.io server
  */
 export const initSocket = (server) => {
+  const origins = [...new Set([
+    "http://localhost:5173",
+    process.env.FRONTEND_URL?.replace(/\/$/, ""),
+    process.env.BACKEND_URL,
+  ].filter(Boolean))];
+
   io = new Server(server, {
     cors: {
-      origin: [process.env.FRONTEND_URL, process.env.BACKEND_URL],
+      origin: origins,
       methods: ["GET", "POST"],
+      credentials: true,
     },
   });
 
-  io.on("connection", (socket) => {
-    console.log(`User connected: ${socket.id}`);
+  // Authenticate every socket with the same JWT used by the REST API
+  io.use((socket, next) => {
+    try {
+      const cookies = cookie.parse(socket.handshake.headers.cookie || "");
+      const token = socket.handshake.auth?.token || cookies.token;
+      if (!token) return next(new Error("Unauthorized"));
+      const decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET_KEY);
+      if (!decoded?.id || decoded.isTempGoogle) return next(new Error("Unauthorized"));
+      socket.userId = String(decoded.id);
+      next();
+    } catch {
+      next(new Error("Unauthorized"));
+    }
+  });
 
-    // Join room and map userId to socketId
-    socket.on('joinRoom', async (userId) => {
-      if (!userId) return;
+  io.on("connection", async (socket) => {
+    const userId = socket.userId;
+    socket.join(userId);
 
-      userSocketMap.set(userId, socket.id);
-      socket.join(userId);
-      console.log(`User ${userId} joined room. Socket: ${socket.id}`);
+    try {
+      await UserModel.findByIdAndUpdate(userId, { isActive: true });
+      io.emit("userStatusChange", { userId, isActive: true });
+    } catch (error) {
+      console.error("Error updating user status on connect:", error);
+    }
 
-      // Update user status in DB
-      try {
-        await UserModel.findByIdAndUpdate(userId, { isActive: true });
-        // Broadcast that this user is now online
-        io.emit("userStatusChange", { userId, isActive: true });
-      } catch (error) {
-        console.error("Error updating user status on joinRoom:", error);
-      }
-    });
+    // Kept for client compatibility; the identity always comes from the JWT
+    socket.on("joinRoom", () => socket.join(userId));
 
-    // Handle explicit status check
-    socket.on("checkStatus", (userId) => {
-      const isActive = userSocketMap.has(userId);
-      socket.emit("statusResponse", { userId, isActive });
+    socket.on("checkStatus", (otherUserId) => {
+      socket.emit("statusResponse", { userId: otherUserId, isActive: isOnline(otherUserId) });
     });
 
     socket.on("disconnect", async () => {
-      let disconnectedUserId = null;
-      for (const [userId, socketId] of userSocketMap.entries()) {
-        if (socketId === socket.id) {
-          disconnectedUserId = userId;
-          break;
-        }
-      }
-
-      if (disconnectedUserId) {
-        userSocketMap.delete(disconnectedUserId);
-        console.log(`User ${disconnectedUserId} disconnected`);
-
-        try {
-          await UserModel.findByIdAndUpdate(disconnectedUserId, { isActive: false });
-          // Broadcast that this user is now offline
-          io.emit("userStatusChange", { userId: disconnectedUserId, isActive: false });
-        } catch (error) {
-          console.error("Error updating user status on disconnect:", error);
-        }
-      }
-    });
-
-    // Simple ping/pong or explicit notification emit (though controllers will mostly use getIO)
-    socket.on('sendNotification', ({ from, to, type }) => {
-      const receiverSocketId = userSocketMap.get(to);
-      if (receiverSocketId) {
-        io.to(receiverSocketId).emit('newNotification', {
-          type,
-          sender: from,
-          receiver: to,
-        });
+      // Only mark offline when the user's last tab/socket is gone
+      if (isOnline(userId)) return;
+      try {
+        await UserModel.findByIdAndUpdate(userId, { isActive: false });
+        io.emit("userStatusChange", { userId, isActive: false });
+      } catch (error) {
+        console.error("Error updating user status on disconnect:", error);
       }
     });
   });
@@ -92,20 +84,11 @@ export const getIO = () => {
 };
 
 /**
- * Get socketId for a specific userId
- */
-export const getSocketId = (userId) => {
-  return userSocketMap.get(String(userId));
-};
-
-/**
- * Send event to a specific user
+ * Send event to every connected socket (tab/device) of a user
  */
 export const emitToUser = (userId, event, data) => {
-  const socketId = getSocketId(userId);
-  if (socketId) {
-    io.to(socketId).emit(event, data);
-    return true;
-  }
-  return false;
+  if (!io) return false;
+  const online = isOnline(userId);
+  io.to(String(userId)).emit(event, data);
+  return online;
 };

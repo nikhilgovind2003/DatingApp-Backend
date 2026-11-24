@@ -125,18 +125,11 @@ export const removeShortlistedProfile = async (req, res) => {
     user.shortlistedProfiles = user.shortlistedProfiles.filter(
       (id) => id.toString() !== profileId.toString(),
     );
-    user.shortListedBy = user.shortListedBy.filter(
-      (id) => id.toString() !== profileId.toString(),
-    );
 
     // Remove the userId from the profile's arrays
     profileToBeRemoved.shortListedBy = profileToBeRemoved.shortListedBy.filter(
       (id) => id.toString() !== userId.toString(),
     );
-    profileToBeRemoved.shortlistedProfiles =
-      profileToBeRemoved.shortlistedProfiles.filter(
-        (id) => id.toString() !== userId.toString(),
-      );
 
     // Save both updated documents
     await Promise.all([user.save(), profileToBeRemoved.save()]);

@@ -38,13 +38,14 @@ export const calculateMatchPercentage = (userProfile, otherUserProfile) => {
 
                 const sharedInterests = userInterests.filter((interest) => otherUserInterests.includes(interest));
 
-                return sharedInterests.length / Math.max(userInterests.length, otherUserInterests.length);
+                const max = Math.max(userInterests.length, otherUserInterests.length);
+                return max ? sharedInterests.length / max : 0;
             },
         },
         {
             field: 'location',
             weight: 10,
-            matchFunc: (a, b) => (a.place === b.place ? 1 : 0),
+            matchFunc: (a, b) => (String(a).trim().toLowerCase() === String(b).trim().toLowerCase() ? 1 : 0),
         },
     ];
 

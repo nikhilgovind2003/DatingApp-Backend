@@ -54,7 +54,7 @@ export const getProfiles = async (req, res) => {
         // }
 
         // Build the sort object
-        const sortOptions = {};
+        let sortOptions = {};
         if (sortBy) {
             // Map sortBy to actual fields in the database
             const sortFields = {

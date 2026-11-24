@@ -12,6 +12,10 @@ export const sendFriendRequest = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid user ID' });
     }
 
+    if (String(from) === String(to)) {
+      return res.status(400).json({ message: 'You cannot send a request to yourself' });
+    }
+
     const sender = await UserModel.findById(from);
     const receiver = await UserModel.findById(to);
 
@@ -84,7 +88,7 @@ export const acceptFriendRequest = async (req, res) => {
     }
 
     const user = await UserModel.findById(userId);
-    const friendRequest = user.friendRequests.find(request => request.from.toString() === from.toString());
+    const friendRequest = user?.friendRequests?.find(request => request.from.toString() === from.toString());
 
     if (!friendRequest) {
       return res.status(404).json({ message: 'Friend request not found' });
@@ -99,6 +103,9 @@ export const acceptFriendRequest = async (req, res) => {
     user.friends.push(from);
 
     const friend = await UserModel.findById(from);
+    if (!friend) {
+      return res.status(404).json({ message: 'User not found' });
+    }
     friend.friends.push(userId);
     friend.requestedLists = friend.requestedLists.filter(id => id.toString() !== userId.toString());
 

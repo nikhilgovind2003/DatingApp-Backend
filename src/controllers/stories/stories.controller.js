@@ -3,10 +3,8 @@ import ProfileModel from "../../models/profile.model.js";
 export const getStories =
   ("/",
   async (req, res) => {
+    try {
     const data = await ProfileModel.find({ user: { $in: req.user.friends } }).populate({ path: "user", select: ["firstName"] });
-
-
-    console.log("data", data); 
 
     if (!data) {
       return res.status(404).json({
@@ -19,6 +17,9 @@ export const getStories =
       success: true,
       data
     });
+    } catch (error) {
+      return res.status(500).json({ success: false, message: error.message });
+    }
   });
 
 export const oneStory =

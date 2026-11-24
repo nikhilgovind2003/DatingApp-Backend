@@ -125,6 +125,6 @@ export const getUserdetails = async (req, res) => {
     res.status(200).json(user);
   } catch (error) {
     console.error("Error fetching user:", error);
-    res.status(500).json({ error: erroor.message });
+    res.status(500).json({ error: error.message });
   }
 };

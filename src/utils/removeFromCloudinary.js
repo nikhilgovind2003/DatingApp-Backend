@@ -1,12 +1,11 @@
 import { cloudinaryInstance } from "../config/cloudinary.config.js";
 
-const deleteImage = async (publicId) => {
+const deleteImage = async (publicId, resourceType = 'image') => {
     try {
         if(!publicId) {
             throw new Error('Cannot get the public key');
         }
-        const response = await cloudinaryInstance.uploader.destroy(publicId)
-        return response
+        return await cloudinaryInstance.uploader.destroy(publicId, { resource_type: resourceType })
     } catch (error) {
        throw new Error(error.message)
     }

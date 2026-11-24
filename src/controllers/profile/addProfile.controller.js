@@ -26,7 +26,6 @@ export const createProfile = async (req, res) => {
         const additionalImages = req?.files?.additionalImg || [];
         const reel = req?.files?.reel?.[0];
 
-        console.log("profile,",  additionalImages);
         // if (!profile || additionalImages.length !== 3 || !reel) {
         //     return res.status(400).json({
         //         success: false,
@@ -35,20 +34,19 @@ export const createProfile = async (req, res) => {
         // }
 
         // Upload to Cloudinary
-        const profileResponse = await uploadOnCloudinary(profile.path, profile.filename, 'image');
-        const reelResponse = await uploadOnCloudinary(reel.path, reel.filename, 'video');
-        
-        if (!profileResponse || !reelResponse) {
-            return res.status(500).json({
+        if (!profile) {
+            return res.status(400).json({
                 success: false,
-                message: "Failed to upload media to server."
+                message: "Please upload a profile picture."
             });
         }
+        const profileResponse = await uploadOnCloudinary(profile.path, 'profiles', 'image');
+        const reelResponse = reel ? await uploadOnCloudinary(reel.path, 'reels', 'video') : null;
 
         // Upload additional images concurrently
         const uploadPromises = additionalImages.map((img) =>
-            uploadOnCloudinary(img.path, img.filename).then((response) => ({
-                url: response.url,
+            uploadOnCloudinary(img.path, 'profiles').then((response) => ({
+                url: response.secure_url,
                 publicId: response.public_id
             }))
         );
@@ -100,13 +98,15 @@ export const createProfile = async (req, res) => {
                     smoking,
                     profileImage: {
                         publicId: profileResponse.public_id,
-                        url: profileResponse.url
+                        url: profileResponse.secure_url
                     },
                     additionalImage: additionalImageArr,
-                    reel: {
-                        publicId: reelResponse.public_id,
-                        url: reelResponse.url
-                    },
+                    ...(reelResponse && {
+                        reel: {
+                            publicId: reelResponse.public_id,
+                            url: reelResponse.secure_url
+                        },
+                    }),
                 },
                 { upsert: true, new: true, setDefaultsOnInsert: true, session }
             );

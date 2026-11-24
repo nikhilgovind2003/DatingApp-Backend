@@ -1,12 +1,8 @@
-import { brevo, brevoSender } from "./brevoClient.js";
+import { sendMail } from './mailer.js';
 
 export const verificationEmail = async ({ userEmail, otp }) => {
     try {
-        await brevo.transactionalEmails.sendTransacEmail({
-            sender: brevoSender,
-            to: [{ email: userEmail }],
-            subject: 'Verify Your Email - Buddy Pair OTP',
-            htmlContent: `
+        await sendMail({ to: userEmail, subject: 'Verify Your Email - Buddy Pair OTP', html: `
         <!DOCTYPE html>
         <html>
         <head>

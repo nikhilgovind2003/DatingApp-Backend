@@ -18,15 +18,11 @@ export const editReel = async (req, res) => {
                 message: "No profile found"
             });
         }
-        const oldReelPublicId = profile.reel.publicId;
-        if(!oldReelPublicId) {
-            return res.status(404).json({
-                success: false,
-                message: "No public Id found"
-            })
+        const oldReelPublicId = profile.reel?.publicId;
+        const response = await uploadOnCloudinary(reel.path, "reels", "video");
+        if (oldReelPublicId) {
+            await deleteImage(oldReelPublicId, "video").catch((e) => console.error("Old reel delete failed:", e.message));
         }
-        await deleteImage(oldReelPublicId);
-        const response = await uploadOnCloudinary(reel?.path, reel?.filename )
         profile.reel = {
             publicId:response.public_id,
             url:response.secure_url,
@@ -35,7 +31,7 @@ export const editReel = async (req, res) => {
         return res.status(200).json({
             success: true,
             message: "Reel edited successfully",
-            reelPath
+            reel: profile.reel
         })
     } catch (error) {
         return res.status(500).json({
