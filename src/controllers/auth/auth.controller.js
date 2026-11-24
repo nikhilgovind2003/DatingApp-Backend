@@ -1,3 +1,5 @@
+import { issueSession, clearSession } from "../../utils/generateToken.js";
+
 export const loginSuccess = async (req, res) => {
   if (req.user) {
     res.status(200).json({ message: "User Logged In", user: req.user });
@@ -6,7 +8,7 @@ export const loginSuccess = async (req, res) => {
   }
 };
 
-export const handleGoogleCallback = (req, res) => {
+export const handleGoogleCallback = async (req, res) => {
   if (req.authData && req.authData.error) {
     return res.redirect(`${process.env.FRONTEND_URL}/login?error=${req.authData.error}`);
   }
@@ -26,14 +28,16 @@ export const handleGoogleCallback = (req, res) => {
   };
 
   if (user.googleSignup) {
-    res.cookie('token', token, cookieOptions)
+    // temporary signup token only (1h); full session is issued once the profile is created
+    res.cookie('token', token, { ...cookieOptions, maxAge: 60 * 60 * 1000 })
     return res.redirect(`${process.env.FRONTEND_URL}/auth/callback?dest=personal_details`)
   } else {
-    res.cookie('token', token, cookieOptions)
+    await issueSession(res, user._id);
     return res.redirect(`${process.env.FRONTEND_URL}/auth/callback?dest=home`);
   }
 };
 
-export const handleLogout = (req, res) => {
+export const handleLogout = async (req, res) => {
+  await clearSession(res, req.user?._id);
   res.redirect(`${process.env.FRONTEND_URL}`);
 };

@@ -2,7 +2,7 @@ import ProfileModel from "../../models/profile.model.js";
 import uploadOnCloudinary from "../../utils/uploadOnCloudinary.js";
 import UserModel from "../../models/user.model.js";
 import mongoose from "mongoose";
-import { generateToken } from "../../utils/generateToken.js";
+import { issueSession } from "../../utils/generateToken.js";
 
 export const createProfile = async (req, res) => {
     try {
@@ -81,7 +81,7 @@ export const createProfile = async (req, res) => {
                 }
                 userId = existingUser._id;
                 finalUser = existingUser;
-                permanentToken = generateToken(userId);
+                permanentToken = true;
             }
 
             const newProfile = await ProfileModel.findOneAndUpdate(
@@ -121,9 +121,9 @@ export const createProfile = async (req, res) => {
                     path: '/',
                     secure: isProduction,
                     sameSite: isProduction ? "none" : "lax",
-                    maxAge: 24 * 60 * 60 * 1000
+                    maxAge: 30 * 24 * 60 * 60 * 1000
                 };
-                res.cookie("token", permanentToken, cookieOptions);
+                if (permanentToken) await issueSession(res, userId);
                 res.cookie("user", JSON.stringify({
                     _id: finalUser._id,
                     firstName: finalUser.firstName,

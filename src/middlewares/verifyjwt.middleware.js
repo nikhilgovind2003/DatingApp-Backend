@@ -23,7 +23,7 @@ const authenticate = (allowTemp) => async (req, res, next) => {
             req.user = decodedToken;
             return next();
         }
-        const user = await UserModel.findById(decodedToken?.id).select('-password -forgotPasswordToken -forgotPasswordExpiry');
+        const user = await UserModel.findById(decodedToken?.id).select('-password -forgotPasswordToken -forgotPasswordExpiry -refreshToken');
         if (!user) {
             return res.status(401).json({
                 success: false,

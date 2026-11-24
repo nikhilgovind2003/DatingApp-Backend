@@ -22,11 +22,13 @@ passport.use(
         },  
         async (accessToken, refreshToken, profile, done) => {  
             try {  
+                const email = profile.emails?.[0]?.value;
+                if (!email) return done(null, { error: 'no_google_email' });
                 let user = await userModel.findOne({ googleId: profile.id });  
 
                 if (!user) {  
                     // Check if a user with this email already exists (local signup)
-                    const existingLocalUser = await userModel.findOne({ email: profile.emails[0].value });
+                    const existingLocalUser = await userModel.findOne({ email: email });
                     if (existingLocalUser) {
                         return done(null, { error: 'already_registered_local' });
                     }
@@ -36,7 +38,7 @@ passport.use(
                         googleId: profile.id,
                         firstName: profile.name.givenName,
                         lastName: profile.name.familyName,
-                        email: profile.emails[0].value,
+                        email: email,
                         googleSignup: true,
                         isActive: true,
                         isVerified: true

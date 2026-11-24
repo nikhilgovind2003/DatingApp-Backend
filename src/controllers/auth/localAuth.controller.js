@@ -2,22 +2,14 @@ import UserModel from '../../models/user.model.js';
 import bcrypt from 'bcryptjs';
 import { sendResetPasswordEmail } from '../../utils/emailService.js';
 import { v4 as uuidv4 } from 'uuid';
-import { generateToken } from '../../utils/generateToken.js';
+import { issueSession, clearSession, accessCookieOptions, verifyRefreshToken, refreshHashMatches } from '../../utils/generateToken.js';
 import { verificationEmail } from '../../utils/verificationEmail.js';
 import otpGenerator from 'otp-generator';
 import ProfileModel from '../../models/profile.model.js';
 import mongoose from 'mongoose';
 
 
-const isProduction = process.env.NODE_ENV === 'production' || process.env.FRONTEND_URL?.includes('vercel.app');
-
-const cookieOptions = {
-    httpOnly: false, // Let frontend read it
-    path: '/',
-    secure: isProduction,
-    sameSite: isProduction ? "none" : "lax",
-    maxAge: 24 * 60 * 60 * 1000
-};
+const cookieOptions = accessCookieOptions();
 
 
 
@@ -126,14 +118,13 @@ export const registerUser = async (req, res) => {
         // Commit transaction
         await session.commitTransaction();
 
-        // Generate JWT token
-        const token = generateToken(createdUser._id);
+        // Generate access + refresh tokens (sets the cookies)
+        const { token } = await issueSession(res, createdUser._id);
 
         // Remove OTP from store after successful registration
         delete otpStore[email];
 
         return res.status(201)
-            .cookie("token", token, cookieOptions)
             .cookie("user", JSON.stringify({
                 _id: createdUser._id,
                 firstName: createdUser.firstName,
@@ -196,7 +187,7 @@ export const loginUser = async (req, res) => {
             });
         }
 
-        const token = generateToken(user._id);
+        const { token } = await issueSession(res, user._id);
 
         const userWithoutPassword = await UserModel.findById(user._id).select('-password');
         userWithoutPassword.isActive = true;
@@ -206,7 +197,6 @@ export const loginUser = async (req, res) => {
 
 
         res.status(200)
-            .cookie("token", token, cookieOptions)
             .cookie("user", JSON.stringify({ ...userWithoutPassword.toObject(), "isAuthenticated": true }), cookieOptions)
             .json({
                 success: true,
@@ -314,9 +304,9 @@ export const logout = async (req, res) => {
         }
         user.isActive = false;
         await user.save();
+        await clearSession(res, user._id);
         const clearOpts = { path: '/', secure: cookieOptions.secure, sameSite: cookieOptions.sameSite };
-        res.clearCookie("token", clearOpts)
-            .clearCookie("user", clearOpts)
+        res.clearCookie("user", clearOpts)
             .clearCookie("myProfile", clearOpts)
             .clearCookie("connect.sid", { path: '/' });
         return res.status(200).json({
@@ -370,3 +360,31 @@ export const changePassword = async (req, res) => {
         })
     }
 }
+
+// Exchange a valid refresh token (httpOnly cookie) for a new access + refresh token pair
+export const refreshAccessToken = async (req, res) => {
+    try {
+        const incoming = req.cookies?.refreshToken;
+        if (!incoming) {
+            return res.status(401).json({ success: false, message: "No refresh token", isAuthenticated: false });
+        }
+        let decoded;
+        try {
+            decoded = verifyRefreshToken(incoming);
+        } catch {
+            await clearSession(res);
+            return res.status(401).json({ success: false, message: "Invalid or expired refresh token", isAuthenticated: false });
+        }
+        const user = await UserModel.findById(decoded.id).select('+refreshToken');
+        if (!user || !refreshHashMatches(user.refreshToken, incoming)) {
+            // unknown user, or a rotated/stolen token being reused: end the session
+            await clearSession(res, user?._id);
+            return res.status(401).json({ success: false, message: "Refresh token revoked", isAuthenticated: false });
+        }
+        const { token } = await issueSession(res, user._id);
+        return res.status(200).json({ success: true, token, isAuthenticated: true });
+    } catch (error) {
+        console.error('Refresh token error:', error);
+        return res.status(500).json({ success: false, message: error.message });
+    }
+};
